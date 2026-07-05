@@ -1,0 +1,52 @@
+{
+  "name": "trainingbuddy",
+  "version": "0.1.0",
+  "private": true,
+  "main": "expo-router/entry",
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web",
+    "lint": "eslint .",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@expo/vector-icons": "latest",
+    "@react-navigation/native": "latest",
+    "drizzle-orm": "latest",
+    "expo": "^57.0.2",
+    "expo-image": "latest",
+    "expo-linking": "latest",
+    "expo-router": "^57.0.3",
+    "expo-sqlite": "latest",
+    "expo-status-bar": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "react-native": "latest",
+    "react-native-gesture-handler": "latest",
+    "react-native-reanimated": "latest",
+    "react-native-safe-area-context": "latest",
+    "react-native-screens": "latest",
+    "react-native-svg": "latest",
+    "react-native-web": "latest",
+    "react-native-worklets": "^0.10.1",
+    "zustand": "latest"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.29.7",
+    "@react-native/jest-preset": "^0.86.0",
+    "@testing-library/jest-native": "latest",
+    "@testing-library/react-native": "latest",
+    "@types/jest": "^29.5.14",
+    "@types/react": "latest",
+    "drizzle-kit": "latest",
+    "eslint": "^9.39.4",
+    "eslint-config-expo": "latest",
+    "jest": "^29.7.0",
+    "jest-expo": "^57.0.1",
+    "prettier": "latest",
+    "test-renderer": "^1.2.0",
+    "typescript": "^5.9.3"
+  }
+}
