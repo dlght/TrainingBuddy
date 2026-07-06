@@ -9,6 +9,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "eslint .",
+    "seed:exercises": "node scripts/seed-wger-images.ts",
     "test": "jest"
   },
   "dependencies": {

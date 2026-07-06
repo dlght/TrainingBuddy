@@ -34,6 +34,25 @@ Open the app in an iOS or Android target.
 
 ## Validation Scenarios
 
+## Offline End-to-End Checklist
+
+Use this checklist for the Phase 8 fresh-install validation pass.
+
+- Reset the app data or install a fresh build.
+- Enable airplane mode before launching the app.
+- Launch the app and confirm the profile setup screen appears without network errors.
+- Save a profile with name, bodyweight, weight unit, experience level, and goal.
+- Confirm Workouts shows exactly three sample templates: Full Body A, Full Body B, and Full Body C.
+- Open each sample workout and confirm it contains exercises with targets and rest times.
+- Open Exercise library, switch muscle groups, and open at least one exercise detail screen.
+- Confirm every exercise card/detail uses a local image or local placeholder state.
+- Start a sample workout, log reps, weight, and RPE for at least one set, adjust or skip the rest timer, then finish the session.
+- Restart the app and confirm no active-session prompt remains after finishing.
+- Start another session, log one set, close the app, reopen, and confirm the home screen offers resume and discard.
+- Create a custom workout from seeded exercises, save it, restart, and confirm it persists.
+- Open progress for a completed exercise and confirm session history, set history, weight trend, and volume trend are visible.
+- Confirm highest-weight and one-rep-max records are not shown.
+
 ### 1. First Launch Offline
 
 1. Install or reset app data.
@@ -47,6 +66,12 @@ Expected:
 - Three sample workouts are visible.
 - Seed exercise images or placeholders are visible.
 - No network error blocks the flow.
+
+Profile phase validation notes:
+- Leave name or bodyweight blank and confirm inline errors appear.
+- Switch between `kg` and `lb`, save, restart the app, and confirm the selected
+  unit is still shown when editing the profile.
+- Height can be left blank; if entered, it must be greater than 0.
 
 ### 2. Browse Exercise Library
 
