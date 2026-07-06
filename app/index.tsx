@@ -1,17 +1,23 @@
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
-import { Screen } from "@/components/Screen";
 import { theme } from "@/components/theme";
 import { profileService } from "@/features/profile/profileService";
-import {
-  sessionService,
-  type ActiveSessionDetails
-} from "@/features/sessions/sessionService";
+import { sessionService, type ActiveSessionDetails } from "@/features/sessions/sessionService";
 import type { UserProfile } from "@/models/user";
+
+const weeklyBars = [3, 5, 4, 6, 7, 4];
+const weekLabels = ["M", "T", "W", "T", "F", "S"];
+
+const quickActions = [
+  { label: "Workouts", route: "/workouts", icon: "🏋️", bg: "#e9f7f1", tint: "#1f7a5f" },
+  { label: "Exercises", route: "/exercises", icon: "💪", bg: "#fef3e2", tint: "#c26a00" },
+  { label: "Progress", route: "/progress/placeholder", icon: "📈", bg: "#eef2ff", tint: "#4338ca" },
+  { label: "Profile", route: "/profile/setup", icon: "👤", bg: "#fef2f2", tint: "#b42318" }
+];
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -91,64 +97,215 @@ export default function HomeScreen() {
   }
 
   return (
-    <Screen
-      eyebrow="Home"
-      title={profile ? `Welcome back, ${profile.name}` : "TrainingBuddy"}
-      body="Pick up with your workouts or adjust your profile."
-      actions={
-        <>
-          {startupError ? <ErrorState message={startupError} title="Startup check" /> : null}
-          {activeSession ? (
-            <>
-              <Text style={styles.promptTitle}>Workout in progress</Text>
-              <Text style={styles.promptBody}>
-                Resume {activeSession.session.workoutNameSnapshot} or discard it before starting another workout.
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                onPress={() => router.push(`/workouts/${activeSession.workout.id}/session`)}
-                style={styles.primaryButton}
-              >
+    <View style={styles.page}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.heroCard}>
+          <View style={styles.heroHeader}>
+            <View style={styles.heroCopy}>
+              <Text style={styles.eyebrow}>Today</Text>
+              <Text style={styles.title}>{profile ? `Welcome back, ${profile.name}` : "Your training hub"}</Text>
+              <Text style={styles.body}>You’re building momentum. Pick up where you left off or jump into a fresh plan.</Text>
+            </View>
+
+            <Pressable accessibilityRole="button" accessibilityLabel="Open profile" onPress={() => router.push("/profile/setup")} style={styles.burgerButton}>
+              <Text style={styles.burgerIcon}>☰</Text>
+            </Pressable>
+          </View>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>4</Text>
+              <Text style={styles.statLabel}>sessions</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>82%</Text>
+              <Text style={styles.statLabel}>consistency</Text>
+            </View>
+          </View>
+        </View>
+
+        {startupError ? <ErrorState message={startupError} title="Startup check" /> : null}
+
+        {activeSession ? (
+          <View style={styles.sessionCard}>
+            <Text style={styles.sectionTitle}>Workout in progress</Text>
+            <Text style={styles.sessionText}>Resume {activeSession.session.workoutNameSnapshot} or discard it before starting another workout.</Text>
+            <View style={styles.sessionActions}>
+              <Pressable accessibilityRole="button" onPress={() => router.push(`/workouts/${activeSession.workout.id}/session`)} style={styles.primaryButton}>
                 <Text style={styles.primaryButtonText}>Resume workout</Text>
               </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                disabled={isDiscardingSession}
-                onPress={discardActiveSession}
-                style={[styles.dangerButton, isDiscardingSession ? styles.disabledButton : null]}
-              >
-                <Text style={styles.dangerButtonText}>
-                  {isDiscardingSession ? "Discarding session" : "Discard session"}
-                </Text>
+              <Pressable accessibilityRole="button" disabled={isDiscardingSession} onPress={discardActiveSession} style={[styles.dangerButton, isDiscardingSession ? styles.disabledButton : null]}>
+                <Text style={styles.dangerButtonText}>{isDiscardingSession ? "Discarding session" : "Discard session"}</Text>
               </Pressable>
-            </>
-          ) : null}
-          <Link href="/profile/setup">Edit profile</Link>
-          <Link href="/exercises">Exercise library</Link>
-          <Link href="/workouts">Workouts</Link>
-          <Link href="/progress/placeholder">Progress placeholder</Link>
-        </>
-      }
-    />
+            </View>
+          </View>
+        ) : null}
+
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Workout trend</Text>
+          <View style={styles.chartRow}>
+            {weeklyBars.map((height, index) => (
+              <View key={weekLabels[index]} style={styles.chartColumn}>
+                <View style={[styles.chartBar, { height: height * 10 }]} />
+                <Text style={styles.chartLabel}>{weekLabels[index]}</Text>
+              </View>
+            ))}
+          </View>
+          <Text style={styles.chartCaption}>Your recent weekly workout volume</Text>
+        </View>
+
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Quick access</Text>
+          <View style={styles.bubbleGrid}>
+            {quickActions.map((action) => (
+              <Pressable key={action.route} accessibilityRole="button" onPress={() => router.push(action.route)} style={[styles.bubble, { backgroundColor: action.bg }]}>
+                <Text style={styles.bubbleIcon}>{action.icon}</Text>
+                <Text style={[styles.bubbleLabel, { color: action.tint }]}>{action.label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+
+      <View style={styles.bottomNav}>
+        <Pressable accessibilityRole="button" onPress={() => router.push("/")} style={styles.navItemActive}>
+          <Text style={styles.navIcon}>⌂</Text>
+          <Text style={styles.navLabelActive}>Home</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={() => router.push("/workouts")} style={styles.navItem}>
+          <Text style={styles.navIcon}>🏋️</Text>
+          <Text style={styles.navLabel}>Workouts</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" onPress={() => router.push("/progress/placeholder")} style={styles.navItem}>
+          <Text style={styles.navIcon}>📈</Text>
+          <Text style={styles.navLabel}>Progress</Text>
+        </Pressable>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  promptTitle: {
+  page: {
+    flex: 1,
+    backgroundColor: theme.colors.background
+  },
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background
+  },
+  content: {
+    padding: theme.spacing.lg,
+    gap: theme.spacing.md,
+    paddingBottom: 110
+  },
+  heroCard: {
+    borderRadius: 24,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3
+  },
+  heroHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: theme.spacing.sm
+  },
+  heroCopy: {
+    flex: 1,
+    gap: theme.spacing.xs
+  },
+  eyebrow: {
+    color: theme.colors.primary,
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase",
+    letterSpacing: 0.8
+  },
+  title: {
     color: theme.colors.text,
-    fontSize: 17,
+    fontSize: 24,
     fontWeight: "800"
   },
-  promptBody: {
+  body: {
     color: theme.colors.muted,
-    fontSize: 15,
-    lineHeight: 22
+    fontSize: 14,
+    lineHeight: 21
+  },
+  burgerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f3f6fb"
+  },
+  burgerIcon: {
+    color: theme.colors.text,
+    fontSize: 20,
+    fontWeight: "700"
+  },
+  statsRow: {
+    flexDirection: "row",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md
+  },
+  statCard: {
+    flex: 1,
+    borderRadius: 16,
+    padding: theme.spacing.md,
+    backgroundColor: "#f8fafc"
+  },
+  statValue: {
+    color: theme.colors.text,
+    fontSize: 20,
+    fontWeight: "800"
+  },
+  statLabel: {
+    color: theme.colors.muted,
+    fontSize: 12,
+    marginTop: 2
+  },
+  sessionCard: {
+    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border
+  },
+  sectionCard: {
+    borderRadius: 20,
+    backgroundColor: theme.colors.surface,
+    padding: theme.spacing.lg,
+    borderWidth: 1,
+    borderColor: theme.colors.border
+  },
+  sectionTitle: {
+    color: theme.colors.text,
+    fontSize: 17,
+    fontWeight: "800",
+    marginBottom: theme.spacing.sm
+  },
+  sessionText: {
+    color: theme.colors.muted,
+    fontSize: 14,
+    lineHeight: 20
+  },
+  sessionActions: {
+    marginTop: theme.spacing.md,
+    gap: theme.spacing.sm
   },
   primaryButton: {
     minHeight: 46,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: theme.radius.sm,
+    borderRadius: 999,
     backgroundColor: theme.colors.primary,
     paddingHorizontal: theme.spacing.md
   },
@@ -161,7 +318,7 @@ const styles = StyleSheet.create({
     minHeight: 42,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: theme.radius.sm,
+    borderRadius: 999,
     borderWidth: 1,
     borderColor: "#fecdca",
     backgroundColor: "#fef3f2",
@@ -174,5 +331,101 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.65
+  },
+  chartRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    height: 140,
+    marginTop: theme.spacing.sm
+  },
+  chartColumn: {
+    flex: 1,
+    alignItems: "center",
+    gap: theme.spacing.xs
+  },
+  chartBar: {
+    width: 22,
+    borderRadius: 999,
+    backgroundColor: theme.colors.primary,
+    minHeight: 20
+  },
+  chartLabel: {
+    color: theme.colors.muted,
+    fontSize: 12
+  },
+  chartCaption: {
+    marginTop: theme.spacing.sm,
+    color: theme.colors.muted,
+    fontSize: 13
+  },
+  bubbleGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm
+  },
+  bubble: {
+    width: "48%",
+    minHeight: 96,
+    borderRadius: 20,
+    padding: theme.spacing.md,
+    justifyContent: "center",
+    gap: theme.spacing.xs
+  },
+  bubbleIcon: {
+    fontSize: 22
+  },
+  bubbleLabel: {
+    fontSize: 15,
+    fontWeight: "700"
+  },
+  bottomNav: {
+    position: "absolute",
+    left: 16,
+    right: 16,
+    bottom: 16,
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    backgroundColor: theme.colors.surface,
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    shadowColor: "#0f172a",
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 3
+  },
+  navItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 999,
+    paddingVertical: 8
+  },
+  navItemActive: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 999,
+    paddingVertical: 8,
+    backgroundColor: "#e9f7f1"
+  },
+  navIcon: {
+    fontSize: 18
+  },
+  navLabel: {
+    fontSize: 12,
+    color: theme.colors.muted,
+    marginTop: 2
+  },
+  navLabelActive: {
+    fontSize: 12,
+    color: theme.colors.primary,
+    marginTop: 2,
+    fontWeight: "700"
   }
 });
