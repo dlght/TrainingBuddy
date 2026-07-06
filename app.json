@@ -11,6 +11,12 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.trainingbuddy.app"
     },
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
     "android": {
       "package": "com.trainingbuddy.app",
       "adaptiveIcon": {

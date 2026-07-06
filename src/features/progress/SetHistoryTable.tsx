@@ -24,7 +24,6 @@ export function SetHistoryTable({ sets }: SetHistoryTableProps) {
           </View>
           <Text style={styles.value}>{set.reps} reps</Text>
           <Text style={styles.value}>{set.weight}</Text>
-          <Text style={styles.value}>RPE {set.effortRpe}</Text>
         </View>
       ))}
     </View>

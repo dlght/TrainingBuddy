@@ -2,13 +2,12 @@ export type SetLogFormValues = {
   setNumber?: string | number;
   reps: string | number;
   weight: string | number;
-  effortRpe: string | number;
 };
 
 export type RestFormValue = string | number;
 
 export type SetLogValidationErrors = Partial<
-  Record<"setNumber" | "reps" | "weight" | "effortRpe", string>
+  Record<"setNumber" | "reps" | "weight", string>
 >;
 
 export type SetLogValidationResult = {
@@ -18,7 +17,6 @@ export type SetLogValidationResult = {
     setNumber?: number;
     reps: number;
     weight: number;
-    effortRpe: number;
   };
 };
 
@@ -51,7 +49,6 @@ export function validateSetLogValues(values: SetLogFormValues): SetLogValidation
   const setNumber = values.setNumber === undefined ? undefined : integerFrom(values.setNumber);
   const reps = integerFrom(values.reps);
   const weight = numberFrom(values.weight);
-  const effortRpe = integerFrom(values.effortRpe);
 
   if (values.setNumber !== undefined && (setNumber === undefined || setNumber === null || setNumber <= 0)) {
     errors.setNumber = "Set number must be a whole number above 0.";
@@ -65,9 +62,6 @@ export function validateSetLogValues(values: SetLogFormValues): SetLogValidation
     errors.weight = "Weight must be 0 or more.";
   }
 
-  if (effortRpe === null || effortRpe < 1 || effortRpe > 10) {
-    errors.effortRpe = "RPE must be a whole number from 1 to 10.";
-  }
 
   if (Object.keys(errors).length > 0) {
     return {
@@ -82,8 +76,7 @@ export function validateSetLogValues(values: SetLogFormValues): SetLogValidation
     value: {
       setNumber: setNumber ?? undefined,
       reps: reps as number,
-      weight: weight as number,
-      effortRpe: effortRpe as number
+      weight: weight as number
     }
   };
 }

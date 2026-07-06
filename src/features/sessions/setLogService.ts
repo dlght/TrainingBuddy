@@ -56,8 +56,7 @@ export function createSetLogService(
       const validation = validateSetLogValues({
         setNumber: nextSetNumber,
         reps: input.reps,
-        weight: input.weight,
-        effortRpe: input.effortRpe
+        weight: input.weight
       });
 
       if (!validation.isValid || !validation.value) {
@@ -72,7 +71,6 @@ export function createSetLogService(
         setNumber: validation.value.setNumber as number,
         reps: validation.value.reps,
         weight: validation.value.weight,
-        effortRpe: validation.value.effortRpe,
         completedAt: input.completedAt,
         exerciseNameSnapshot: exercise?.name ?? workoutExercise.exerciseId,
         targetRepsSnapshot: `${workoutExercise.targetRepRangeLow}-${workoutExercise.targetRepRangeHigh}`,

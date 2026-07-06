@@ -11,7 +11,6 @@ import {
 export type SetLogEditorValues = {
   reps: string;
   weight: string;
-  effortRpe: string;
 };
 
 type SetLogEditorProps = {
@@ -23,7 +22,6 @@ export function SetLogEditor({ isSaving = false, onSubmit }: SetLogEditorProps) 
   const [values, setValues] = useState<SetLogEditorValues>({
     reps: "",
     weight: "",
-    effortRpe: ""
   });
   const [errors, setErrors] = useState<SetLogValidationErrors>({});
 
@@ -34,7 +32,7 @@ export function SetLogEditor({ isSaving = false, onSubmit }: SetLogEditorProps) 
     }));
     setErrors((current) => {
       const next = { ...current };
-      delete next[field === "effortRpe" ? "effortRpe" : field];
+      delete next[field];
       return next;
     });
   };
@@ -51,8 +49,7 @@ export function SetLogEditor({ isSaving = false, onSubmit }: SetLogEditorProps) 
     await onSubmit(values);
     setValues({
       reps: "",
-      weight: values.weight,
-      effortRpe: ""
+      weight: values.weight
     });
   };
 
@@ -73,13 +70,6 @@ export function SetLogEditor({ isSaving = false, onSubmit }: SetLogEditorProps) 
           label="Weight"
           value={values.weight}
           onChangeText={(value) => setField("weight", value)}
-        />
-        <Field
-          accessibilityLabel="RPE"
-          error={errors.effortRpe}
-          label="RPE"
-          value={values.effortRpe}
-          onChangeText={(value) => setField("effortRpe", value)}
         />
       </View>
       <Pressable

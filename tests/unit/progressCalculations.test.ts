@@ -13,7 +13,6 @@ const historySets: ExerciseHistorySet[] = [
     setNumber: 1,
     reps: 10,
     weight: 20,
-    effortRpe: 7,
     exerciseNameSnapshot: "Bodyweight Squat"
   },
   {
@@ -23,7 +22,6 @@ const historySets: ExerciseHistorySet[] = [
     setNumber: 2,
     reps: 8,
     weight: 22.5,
-    effortRpe: 8,
     exerciseNameSnapshot: "Bodyweight Squat"
   },
   {
@@ -33,7 +31,6 @@ const historySets: ExerciseHistorySet[] = [
     setNumber: 1,
     reps: 12,
     weight: 20,
-    effortRpe: 7,
     exerciseNameSnapshot: "Bodyweight Squat"
   }
 ];

@@ -33,7 +33,6 @@ describe("logging workout sessions", () => {
       workoutExerciseId: firstExercise.id,
       reps: "10",
       weight: "25",
-      effortRpe: "7",
       completedAt: "2026-07-06T10:00:00.000Z"
     });
 
@@ -41,7 +40,6 @@ describe("logging workout sessions", () => {
       setNumber: 1,
       reps: 10,
       weight: 25,
-      effortRpe: 7,
       exerciseNameSnapshot: firstExercise.exerciseName,
       targetRepsSnapshot: `${firstExercise.targetRepRangeLow}-${firstExercise.targetRepRangeHigh}`,
       targetRestSecondsSnapshot: firstExercise.targetRestSeconds

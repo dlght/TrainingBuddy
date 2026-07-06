@@ -76,7 +76,8 @@ export function createWgerClient(options: WgerClientOptions = {}) {
 
   return {
     listExerciseInfo(params?: WgerListParams) {
-      return getPaginated<WgerExerciseInfo>("exerciseinfo/", params);
+      const defaultParams: WgerListParams = { limit: 200 };
+      return getPaginated<WgerExerciseInfo>("exerciseinfo/", { ...defaultParams, ...params });
     },
     listExerciseImages(params?: WgerListParams) {
       return getPaginated<WgerImage>("exerciseimage/", params);

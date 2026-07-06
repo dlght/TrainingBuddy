@@ -31,7 +31,6 @@ jest.mock("@/features/progress/progressService", () => ({
           setNumber: 1,
           reps: 10,
           weight: 20,
-          effortRpe: 7,
           exerciseNameSnapshot: "Bodyweight Squat"
         }
       ],

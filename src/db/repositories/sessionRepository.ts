@@ -115,13 +115,12 @@ export function createSessionRepository(database: DatabaseAdapter) {
             set_number,
             reps,
             weight,
-            effort_rpe,
             completed_at,
             exercise_name_snapshot,
             target_reps_snapshot,
             target_rest_seconds_snapshot
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           setLog.id,
           setLog.sessionId,
@@ -129,7 +128,6 @@ export function createSessionRepository(database: DatabaseAdapter) {
           setLog.setNumber,
           setLog.reps,
           setLog.weight,
-          setLog.effortRpe,
           setLog.completedAt,
           setLog.exerciseNameSnapshot,
           setLog.targetRepsSnapshot,
@@ -148,7 +146,6 @@ export function createSessionRepository(database: DatabaseAdapter) {
                 set_number as setNumber,
                 reps,
                 weight,
-                effort_rpe as effortRpe,
                 completed_at as completedAt,
                 exercise_name_snapshot as exerciseNameSnapshot,
                 target_reps_snapshot as targetRepsSnapshot,

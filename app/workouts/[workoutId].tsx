@@ -10,6 +10,7 @@ import { exerciseLibraryService } from "@/features/exercises/exerciseLibraryServ
 import { workoutBuilderService } from "@/features/workouts/workoutBuilderService";
 import type { Exercise } from "@/models/exercise";
 import type { WorkoutWithExercises } from "@/models/workout";
+import { ExerciseLabel } from "@/components/ExerciseLabel";
 
 function firstParam(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) {
@@ -178,9 +179,9 @@ export default function WorkoutDetailScreen() {
             <Text style={styles.sectionTitle}>Exercises</Text>
             {workout.exercises.map((exercise) => (
               <View key={exercise.id} style={styles.exerciseRow}>
-                <Text style={styles.exerciseName}>
-                  {exercise.orderIndex + 1}. {exerciseNamesById.get(exercise.exerciseId) ?? exercise.exerciseId}
-                </Text>
+                    <Text style={styles.exerciseName}>
+                      {exercise.orderIndex + 1}. <ExerciseLabel name={exerciseNamesById.get(exercise.exerciseId) ?? exercise.exerciseId} style={styles.exerciseName} />
+                    </Text>
                 <Text style={styles.exerciseMeta}>
                   {exercise.targetSets} sets - {exercise.targetRepRangeLow}-{exercise.targetRepRangeHigh} reps -{" "}
                   {exercise.targetRestSeconds}s rest

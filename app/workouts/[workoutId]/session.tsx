@@ -116,13 +116,12 @@ export default function ActiveSessionScreen() {
     setIsSavingSet(true);
     setError(null);
 
-    try {
+      try {
       const setLog = await setLogService.logSet({
         sessionId: sessionDetails.session.id,
         workoutExerciseId: currentExercise.id,
         reps: values.reps,
-        weight: values.weight,
-        effortRpe: values.effortRpe
+        weight: values.weight
       });
 
       setSessionDetails((current) => {

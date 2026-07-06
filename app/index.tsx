@@ -3,14 +3,21 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ErrorState } from "@/components/ErrorState";
+import { ExerciseLabel } from "@/components/ExerciseLabel";
 import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
 import { profileService } from "@/features/profile/profileService";
 import { sessionService, type ActiveSessionDetails } from "@/features/sessions/sessionService";
 import type { UserProfile } from "@/models/user";
+import { formatShortDate } from "@/features/progress/progressCalculations";
 
 const weeklyBars = [3, 5, 4, 6, 7, 4];
 const weekLabels = ["M", "T", "W", "T", "F", "S"];
+const favoriteWorkouts = [
+  { name: "Upper Body Push", count: 12, accent: "#1f7a5f" },
+  { name: "Leg Day", count: 8, accent: "#4338ca" },
+  { name: "Core Flow", count: 6, accent: "#c26a00" }
+];
 
 const quickActions = [
   { label: "Workouts", route: "/workouts", icon: "🏋️", bg: "#e9f7f1", tint: "#1f7a5f" },
@@ -26,6 +33,7 @@ export default function HomeScreen() {
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [isDiscardingSession, setIsDiscardingSession] = useState(false);
   const [startupError, setStartupError] = useState<string | null>(null);
+  const [topWorkouts, setTopWorkouts] = useState<{ workoutId: string; name: string; runCount: number; lastRun: string | null }[] | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -74,6 +82,37 @@ export default function HomeScreen() {
     };
   }, [router]);
 
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadTop() {
+      try {
+        const [{ getDatabaseClient }, { runMigrations }, { loadSeedData }] = await Promise.all([
+          import("@/db/client"),
+          import("@/db/migrate"),
+          import("@/db/seed/loadSeedData")
+        ]);
+
+        const { adapter } = await getDatabaseClient();
+        await runMigrations(adapter);
+        await loadSeedData(adapter);
+        const { createWorkoutRepository } = await import("@/db/repositories/workoutRepository");
+        const repo = createWorkoutRepository(adapter as any);
+        const top = await repo.getTopWorkouts(3);
+
+        if (mounted) setTopWorkouts(top);
+      } catch {
+        if (mounted) setTopWorkouts([]);
+      }
+    }
+
+    void loadTop();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const discardActiveSession = async () => {
     if (!activeSession) {
       return;
@@ -101,22 +140,38 @@ export default function HomeScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroCard}>
           <View style={styles.heroHeader}>
-            <View style={styles.heroCopy}>
-              <Text style={styles.eyebrow}>Today</Text>
-              <Text style={styles.title}>{profile ? `Welcome back, ${profile.name}` : "Your training hub"}</Text>
-              <Text style={styles.body}>You’re building momentum. Pick up where you left off or jump into a fresh plan.</Text>
+          {topWorkouts === null ? (
+            <Text style={styles.body}>Loading your top workouts…</Text>
+          ) : topWorkouts.length === 0 ? (
+            <Text style={styles.body}>No workouts logged yet.</Text>
+          ) : (
+            <View style={styles.topBubbles}>
+              {topWorkouts.slice(0, 3).map((workout, index) => (
+                <Pressable
+                  key={workout.workoutId}
+                  style={[
+                    styles.topBubble,
+                    {
+                      borderColor: index === 0 ? "#1f7a5f" : index === 1 ? "#4338ca" : "#c26a00",
+                      backgroundColor: index === 0 ? "#e6f6ee" : index === 1 ? "#eef0ff" : "#fff6e6"
+                    }
+                  ]}
+                  accessibilityRole="button"
+                  onPress={() => router.push(`/workouts/${workout.workoutId}`)}
+                >
+                  <View style={styles.topBubbleHeader}>
+                    <View style={[styles.favoriteDot, { backgroundColor: index === 0 ? "#1f7a5f" : index === 1 ? "#4338ca" : "#c26a00" }]} />
+                    <Text style={styles.topBubbleRank}>#{index + 1}</Text>
+                  </View>
+                  <ExerciseLabel name={workout.name} style={styles.topBubbleName} maxChars={22} />
+                  <Text style={styles.topBubbleSub}>{workout.runCount} runs • {workout.lastRun ? formatShortDate(workout.lastRun) : "-"}</Text>
+                </Pressable>
+              ))}
             </View>
-
-            <Pressable accessibilityRole="button" accessibilityLabel="Open profile" onPress={() => router.push("/profile/setup")} style={styles.burgerButton}>
-              <Text style={styles.burgerIcon}>☰</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>4</Text>
-              <Text style={styles.statLabel}>sessions</Text>
-            </View>
+          )}
+          
+          {/* Fallback static favorites removed in favor of dynamic top workouts */}
+          
             <View style={styles.statCard}>
               <Text style={styles.statValue}>82%</Text>
               <Text style={styles.statLabel}>consistency</Text>
@@ -145,7 +200,7 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Workout trend</Text>
           <View style={styles.chartRow}>
             {weeklyBars.map((height, index) => (
-              <View key={weekLabels[index]} style={styles.chartColumn}>
+              <View key={`week-${index}`} style={styles.chartColumn}>
                 <View style={[styles.chartBar, { height: height * 10 }]} />
                 <Text style={styles.chartLabel}>{weekLabels[index]}</Text>
               </View>
@@ -155,10 +210,26 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Favorite workouts</Text>
+          {favoriteWorkouts.map((workout, index) => (
+            <View key={`${workout.name}-${index}`} style={styles.favoriteRow}>
+              <View style={styles.favoriteMeta}>
+                <View style={[styles.favoriteDot, { backgroundColor: workout.accent }]} />
+                <View>
+                  <Text style={styles.favoriteName}>{workout.name}</Text>
+                  <Text style={styles.favoriteCount}>{workout.count} sessions</Text>
+                </View>
+              </View>
+              <Text style={styles.favoriteRank}>#{index + 1}</Text>
+            </View>
+          ))}
+        </View>
+
+        <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Quick access</Text>
           <View style={styles.bubbleGrid}>
             {quickActions.map((action) => (
-              <Pressable key={action.route} accessibilityRole="button" onPress={() => router.push(action.route)} style={[styles.bubble, { backgroundColor: action.bg }]}>
+              <Pressable key={action.route} accessibilityRole="button" onPress={() => router.push(action.route as any)} style={[styles.bubble, { backgroundColor: action.bg }]}>
                 <Text style={styles.bubbleIcon}>{action.icon}</Text>
                 <Text style={[styles.bubbleLabel, { color: action.tint }]}>{action.label}</Text>
               </Pressable>
@@ -237,19 +308,6 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
     fontSize: 14,
     lineHeight: 21
-  },
-  burgerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#f3f6fb"
-  },
-  burgerIcon: {
-    color: theme.colors.text,
-    fontSize: 20,
-    fontWeight: "700"
   },
   statsRow: {
     flexDirection: "row",
@@ -358,6 +416,78 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.sm,
     color: theme.colors.muted,
     fontSize: 13
+  },
+  favoriteRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: theme.spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: "#eef2f7"
+  },
+  favoriteMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    flex: 1
+  },
+  favoriteDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5
+  },
+  favoriteName: {
+    color: theme.colors.text,
+    fontSize: 14,
+    fontWeight: "700"
+  },
+  favoriteCount: {
+    color: theme.colors.muted,
+    fontSize: 12,
+    marginTop: 2
+  },
+  favoriteRank: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: "800"
+  },
+  topBubbles: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md
+  },
+  topBubble: {
+    flex: 1,
+    borderRadius: 16,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    backgroundColor: "#fff",
+    marginRight: theme.spacing.sm,
+    minHeight: 96,
+    justifyContent: "center"
+  },
+  topBubbleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm,
+    marginBottom: theme.spacing.xs
+  },
+  topBubbleRank: {
+    color: theme.colors.muted,
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  topBubbleName: {
+    color: theme.colors.text,
+    fontSize: 15,
+    fontWeight: "800",
+    marginTop: 4
+  },
+  topBubbleSub: {
+    color: theme.colors.muted,
+    fontSize: 12,
+    marginTop: 6
   },
   bubbleGrid: {
     flexDirection: "row",

@@ -44,7 +44,6 @@ describe("exercise history progress query", () => {
         workoutExerciseId: squat.id,
         reps: 10,
         weight: 20,
-        effortRpe: 7,
         completedAt
       });
       await sessionService.completeSession(activeSession.session.id);

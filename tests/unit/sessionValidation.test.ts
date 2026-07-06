@@ -8,8 +8,7 @@ describe("session validation", () => {
     const result = validateSetLogValues({
       setNumber: "2",
       reps: "10",
-      weight: "35.5",
-      effortRpe: "8"
+      weight: "35.5"
     });
 
     expect(result).toEqual({
@@ -18,8 +17,7 @@ describe("session validation", () => {
       value: {
         setNumber: 2,
         reps: 10,
-        weight: 35.5,
-        effortRpe: 8
+        weight: 35.5
       }
     });
   });
@@ -28,16 +26,14 @@ describe("session validation", () => {
     const result = validateSetLogValues({
       setNumber: "0",
       reps: "-1",
-      weight: "-5",
-      effortRpe: "11"
+      weight: "-5"
     });
 
     expect(result.isValid).toBe(false);
     expect(result.errors).toEqual({
       setNumber: "Set number must be a whole number above 0.",
       reps: "Reps must be a whole number at least 0.",
-      weight: "Weight must be 0 or more.",
-      effortRpe: "RPE must be a whole number from 1 to 10."
+      weight: "Weight must be 0 or more."
     });
   });
 

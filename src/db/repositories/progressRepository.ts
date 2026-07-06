@@ -11,7 +11,6 @@ export function createProgressRepository(database: DatabaseAdapter) {
                 sl.set_number as setNumber,
                 sl.reps,
                 sl.weight,
-                sl.effort_rpe as effortRpe,
                 sl.exercise_name_snapshot as exerciseNameSnapshot
            FROM set_logs sl
            JOIN workout_sessions ws ON ws.id = sl.session_id

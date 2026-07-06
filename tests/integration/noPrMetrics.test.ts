@@ -37,7 +37,6 @@ describe("progress excludes PR metrics", () => {
       workoutExerciseId: squat.id,
       reps: 5,
       weight: 100,
-      effortRpe: 9
     });
     await sessionService.completeSession(activeSession.session.id);
 

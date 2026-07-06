@@ -47,7 +47,6 @@ describe("completed session snapshots", () => {
       workoutExerciseId: activeSession.exercises[0].id,
       reps: 10,
       weight: 25,
-      effortRpe: 8
     });
     await sessionService.completeSession(activeSession.session.id);
     await workoutBuilder.updateCustomWorkout(workout.id, {

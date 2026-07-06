@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import { theme } from "@/components/theme";
 
 import { SupersetGroupControl } from "./SupersetGroupControl";
+import { ExerciseLabel } from "@/components/ExerciseLabel";
 
 export type WorkoutExerciseEditorValue = {
   key: string;
@@ -56,7 +57,7 @@ export function WorkoutExerciseEditor({
       <View style={styles.header}>
         <View style={styles.titleBlock}>
           <Text style={styles.order}>{index + 1}</Text>
-          <Text style={styles.name}>{exercise.exerciseName}</Text>
+          <ExerciseLabel name={exercise.exerciseName} style={styles.name} />
         </View>
         <Pressable accessibilityRole="button" onPress={onRemove} style={styles.textButton}>
           <Text style={styles.removeText}>Remove</Text>

@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { theme } from "@/components/theme";
 import type { Exercise } from "@/models/exercise";
 
+import { ExerciseLabel } from "@/components/ExerciseLabel";
+
 import { ExerciseImageFallback } from "./ExerciseImageFallback";
 import { resolveExerciseImage } from "./exerciseImageResolver";
 import { formatMuscleGroupName } from "./exerciseSelectors";
@@ -33,7 +35,7 @@ export function ExerciseCard({ accessibilityLabel, exercise, onPress }: Exercise
       )}
       <View style={styles.content}>
         <View style={styles.titleRow}>
-          <Text style={styles.name}>{exercise.name}</Text>
+          <ExerciseLabel name={exercise.name} style={styles.name} />
           {exercise.isWarmup ? <Text style={styles.badge}>Warmup</Text> : null}
         </View>
         <Text style={styles.meta}>

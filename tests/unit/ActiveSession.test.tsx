@@ -88,7 +88,6 @@ describe("ActiveSession screen", () => {
       setNumber: 1,
       reps: 10,
       weight: 25,
-      effortRpe: 7,
       completedAt: "2026-07-06T10:05:00.000Z",
       exerciseNameSnapshot: "Bodyweight Squat",
       targetRepsSnapshot: "8-12",
@@ -110,7 +109,6 @@ describe("ActiveSession screen", () => {
 
     await fireEvent.changeText(view.getByLabelText("Reps"), "10");
     await fireEvent.changeText(view.getByLabelText("Weight"), "25");
-    await fireEvent.changeText(view.getByLabelText("RPE"), "7");
     await fireEvent.press(view.getByLabelText("Submit set log"));
 
     await waitFor(() => expect(mockLogSet).toHaveBeenCalledTimes(1));
@@ -118,8 +116,7 @@ describe("ActiveSession screen", () => {
       sessionId: "session-1",
       workoutExerciseId: "we-1",
       reps: "10",
-      weight: "25",
-      effortRpe: "7"
+      weight: "25"
     });
 
     expect(await view.findByText("Rest running")).toBeOnTheScreen();

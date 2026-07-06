@@ -227,11 +227,10 @@ export class TestDatabase implements DatabaseAdapter {
         setNumber: Number(row[3]),
         reps: Number(row[4]),
         weight: Number(row[5]),
-        effortRpe: Number(row[6]),
-        completedAt: String(row[7]),
-        exerciseNameSnapshot: String(row[8]),
-        targetRepsSnapshot: row[9] === null ? null : String(row[9]),
-        targetRestSecondsSnapshot: row[10] === null ? null : Number(row[10])
+        completedAt: String(row[6]),
+        exerciseNameSnapshot: String(row[7]),
+        targetRepsSnapshot: row[8] === null ? null : String(row[8]),
+        targetRestSecondsSnapshot: row[9] === null ? null : Number(row[9])
       };
 
       this.setLogs.set(setLog.id, setLog);
@@ -375,7 +374,6 @@ export class TestDatabase implements DatabaseAdapter {
           setNumber: setLog.setNumber,
           reps: setLog.reps,
           weight: setLog.weight,
-          effortRpe: setLog.effortRpe,
           exerciseNameSnapshot: setLog.exerciseNameSnapshot
         };
       }) as T[];

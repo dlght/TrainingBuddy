@@ -241,6 +241,22 @@ export function createWorkoutRepository(database: DatabaseAdapter) {
       await database.runAsync("DELETE FROM workouts WHERE id = ?", [id]);
     },
 
+    async getTopWorkouts(limit = 3): Promise<{ workoutId: string; name: string; runCount: number; lastRun: string | null }[]> {
+      return database.getAllAsync<{ workoutId: string; name: string; runCount: number; lastRun: string | null }>(
+        `SELECT w.id as workoutId,
+                w.name as name,
+                COUNT(ws.id) as runCount,
+                MAX(ws.ended_at) as lastRun
+           FROM workout_sessions ws
+           JOIN workouts w ON w.id = ws.workout_id
+          WHERE ws.status = 'completed'
+          GROUP BY w.id, w.name
+          ORDER BY runCount DESC, lastRun DESC
+          LIMIT ?`,
+        [limit]
+      );
+    }
+    ,
     async copyTemplateWorkout(templateWorkoutId: string, userId: string): Promise<WorkoutWithExercises> {
       const template = await this.getWorkoutWithExercises(templateWorkoutId);
 

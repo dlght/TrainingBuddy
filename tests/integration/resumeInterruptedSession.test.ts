@@ -32,8 +32,8 @@ describe("interrupted session resume and discard", () => {
       workoutExerciseId: started.exercises[0].id,
       reps: 8,
       weight: 20,
-      effortRpe: 6
     });
+
 
     const resumed = await createSessionServiceForDatabase(database).resumeActiveSession("local-user");
 

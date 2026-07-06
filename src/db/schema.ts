@@ -100,7 +100,6 @@ export const setLogs = sqliteTable("set_logs", {
   setNumber: integer("set_number").notNull(),
   reps: integer("reps").notNull(),
   weight: real("weight").notNull(),
-  effortRpe: integer("effort_rpe").notNull(),
   completedAt: text("completed_at").notNull(),
   exerciseNameSnapshot: text("exercise_name_snapshot").notNull(),
   targetRepsSnapshot: text("target_reps_snapshot"),

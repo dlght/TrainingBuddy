@@ -87,7 +87,6 @@ CREATE TABLE IF NOT EXISTS set_logs (
   set_number INTEGER NOT NULL CHECK (set_number > 0),
   reps INTEGER NOT NULL CHECK (reps >= 0),
   weight REAL NOT NULL CHECK (weight >= 0),
-  effort_rpe INTEGER NOT NULL CHECK (effort_rpe BETWEEN 1 AND 10),
   completed_at TEXT NOT NULL,
   exercise_name_snapshot TEXT NOT NULL CHECK (length(trim(exercise_name_snapshot)) > 0),
   target_reps_snapshot TEXT,
