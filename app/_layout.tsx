@@ -1,6 +1,7 @@
 import { Stack, useRouter } from "expo-router";
 import { Pressable, Text } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { theme } from "@/components/theme";
 
@@ -8,31 +9,13 @@ export default function RootLayout() {
   const router = useRouter();
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack
         screenOptions={{
           contentStyle: { backgroundColor: theme.colors.background },
           headerStyle: { backgroundColor: theme.colors.surface },
           headerTintColor: theme.colors.text,
-          headerTitleStyle: { fontWeight: "700" },
-          headerRight: () => (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Open profile"
-              onPress={() => router.push("/profile/setup")}
-              style={{
-                marginRight: 12,
-                width: 36,
-                height: 36,
-                borderRadius: 18,
-                backgroundColor: "#f3f6fb",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
-            >
-              <Text style={{ fontSize: 18, fontWeight: "700", color: theme.colors.text }}>☰</Text>
-            </Pressable>
-          )
+          headerTitleStyle: { fontWeight: "700" }
         }}
       >
         <Stack.Screen name="index" options={{ title: "TrainingBuddy" }} />
@@ -46,6 +29,6 @@ export default function RootLayout() {
         <Stack.Screen name="progress/[exerciseId]" options={{ title: "Progress" }} />
       </Stack>
       <StatusBar style="auto" />
-    </>
+    </GestureHandlerRootView>
   );
 }

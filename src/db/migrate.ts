@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS workouts (
   created_at TEXT NOT NULL,
   is_template INTEGER NOT NULL DEFAULT 0 CHECK (is_template IN (0, 1)),
   source_template_id TEXT REFERENCES workouts(id) ON DELETE SET NULL,
+  is_favourite INTEGER NOT NULL DEFAULT 0 CHECK (is_favourite IN (0, 1)),
   CHECK ((is_template = 1 AND user_id IS NULL) OR is_template = 0)
 );
 
@@ -111,6 +112,11 @@ export const migrations: Migration[] = [
   {
     id: "0001_initial",
     sql: initialMigrationSql
+  },
+  {
+    id: "0002_add_favourite_to_workouts",
+    sql: `ALTER TABLE workouts ADD COLUMN is_favourite INTEGER NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS workouts_favourite_idx ON workouts(is_favourite);`
   }
 ];
 

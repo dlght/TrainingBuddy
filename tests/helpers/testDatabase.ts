@@ -118,7 +118,8 @@ export class TestDatabase implements DatabaseAdapter {
             userId: null,
             createdAt: String(row[2]),
             isTemplate: true,
-            sourceTemplateId: null
+            sourceTemplateId: null,
+            isFavourite: false
           }
         : {
             id: String(row[0]),
@@ -126,7 +127,8 @@ export class TestDatabase implements DatabaseAdapter {
             userId: String(row[2]),
             createdAt: String(row[3]),
             isTemplate: false,
-            sourceTemplateId: row[4] === null ? null : String(row[4])
+            sourceTemplateId: row[4] === null ? null : String(row[4]),
+            isFavourite: false
           };
 
       this.workouts.set(workout.id, workout);
@@ -164,6 +166,17 @@ export class TestDatabase implements DatabaseAdapter {
 
       if (workout) {
         this.workouts.set(workout.id, { ...workout, name: String(row[0]) });
+        return { changes: 1 };
+      }
+
+      return { changes: 0 };
+    }
+
+    if (normalized.startsWith("update workouts set is_favourite")) {
+      const workout = this.workouts.get(String(row[1]));
+
+      if (workout) {
+        this.workouts.set(workout.id, { ...workout, isFavourite: Boolean(row[0]) });
         return { changes: 1 };
       }
 

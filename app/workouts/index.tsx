@@ -1,7 +1,7 @@
 import { Link } from "expo-router";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
@@ -17,12 +17,14 @@ function WorkoutSection({
   emptyState,
   title,
   workouts,
-  emptyText
+  emptyText,
+  onToggleFavourite
 }: {
   emptyState?: ReactNode;
   title: string;
   workouts: WorkoutWithExercises[];
   emptyText?: string;
+  onToggleFavourite?: (workoutId: string) => void;
 }) {
   return (
     <View style={styles.section}>
@@ -30,7 +32,19 @@ function WorkoutSection({
       {workouts.length === 0 ? emptyState ?? <Text style={styles.emptyText}>{emptyText}</Text> : null}
       {workouts.map((workout) => (
         <View key={workout.id} style={styles.workoutCard}>
-          <Link href={`/workouts/${workout.id}`}>{workout.name}</Link>
+          <View style={styles.workoutHeader}>
+            <Link href={`/workouts/${workout.id}`} style={styles.workoutName}>{workout.name}</Link>
+            {onToggleFavourite && (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={workout.isFavourite ? "Remove from favourites" : "Add to favourites"}
+                onPress={() => onToggleFavourite(workout.id)}
+                style={styles.favouriteButton}
+              >
+                <Text style={styles.favouriteIcon}>{workout.isFavourite ? "❤️" : "🤍"}</Text>
+              </Pressable>
+            )}
+          </View>
           <Text style={styles.workoutMeta}>
             {workout.exercises.length} {workout.exercises.length === 1 ? "exercise" : "exercises"}
           </Text>
@@ -44,6 +58,28 @@ export default function WorkoutsScreen() {
   const [workoutData, setWorkoutData] = useState<WorkoutListData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const handleToggleFavourite = async (workoutId: string) => {
+    try {
+      const [{ getDatabaseClient }, { runMigrations }, { loadSeedData }] = await Promise.all([
+        import("@/db/client"),
+        import("@/db/migrate"),
+        import("@/db/seed/loadSeedData")
+      ]);
+      const { adapter } = await getDatabaseClient();
+      await runMigrations(adapter);
+      await loadSeedData(adapter);
+      const { createWorkoutRepository } = await import("@/db/repositories/workoutRepository");
+      const repo = createWorkoutRepository(adapter as any);
+      await repo.toggleFavourite(workoutId);
+      
+      // Reload workout data
+      const data = await workoutListService.listWorkouts();
+      setWorkoutData(data);
+    } catch {
+      setError("Could not toggle favourite.");
+    }
+  };
 
   useEffect(() => {
     let mounted = true;
@@ -96,6 +132,7 @@ export default function WorkoutsScreen() {
             title="Custom workouts"
             workouts={workoutData.customWorkouts}
             emptyState={<WorkoutEmptyState />}
+            onToggleFavourite={handleToggleFavourite}
           />
         </>
       ) : null}
@@ -139,6 +176,23 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     gap: theme.spacing.xs,
     padding: theme.spacing.md
+  },
+  workoutHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between"
+  },
+  workoutName: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "700",
+    flex: 1
+  },
+  favouriteButton: {
+    padding: theme.spacing.xs
+  },
+  favouriteIcon: {
+    fontSize: 20
   },
   workoutMeta: {
     color: theme.colors.muted,

@@ -8,6 +8,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
 import { profileService } from "@/features/profile/profileService";
 import { sessionService, type ActiveSessionDetails } from "@/features/sessions/sessionService";
+import { workoutRecommendationService } from "@/features/workouts/workoutRecommendationService";
 import type { UserProfile } from "@/models/user";
 import { formatShortDate } from "@/features/progress/progressCalculations";
 
@@ -19,13 +20,6 @@ const favoriteWorkouts = [
   { name: "Core Flow", count: 6, accent: "#c26a00" }
 ];
 
-const quickActions = [
-  { label: "Workouts", route: "/workouts", icon: "🏋️", bg: "#e9f7f1", tint: "#1f7a5f" },
-  { label: "Exercises", route: "/exercises", icon: "💪", bg: "#fef3e2", tint: "#c26a00" },
-  { label: "Progress", route: "/progress/placeholder", icon: "📈", bg: "#eef2ff", tint: "#4338ca" },
-  { label: "Profile", route: "/profile/setup", icon: "👤", bg: "#fef2f2", tint: "#b42318" }
-];
-
 export default function HomeScreen() {
   const router = useRouter();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -33,7 +27,7 @@ export default function HomeScreen() {
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [isDiscardingSession, setIsDiscardingSession] = useState(false);
   const [startupError, setStartupError] = useState<string | null>(null);
-  const [topWorkouts, setTopWorkouts] = useState<{ workoutId: string; name: string; runCount: number; lastRun: string | null }[] | null>(null);
+  const [suggestedWorkouts, setSuggestedWorkouts] = useState<{ id: string; name: string; isFavourite: boolean }[] | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -85,28 +79,16 @@ export default function HomeScreen() {
   useEffect(() => {
     let mounted = true;
 
-    async function loadTop() {
+    async function loadSuggestions() {
       try {
-        const [{ getDatabaseClient }, { runMigrations }, { loadSeedData }] = await Promise.all([
-          import("@/db/client"),
-          import("@/db/migrate"),
-          import("@/db/seed/loadSeedData")
-        ]);
-
-        const { adapter } = await getDatabaseClient();
-        await runMigrations(adapter);
-        await loadSeedData(adapter);
-        const { createWorkoutRepository } = await import("@/db/repositories/workoutRepository");
-        const repo = createWorkoutRepository(adapter as any);
-        const top = await repo.getTopWorkouts(3);
-
-        if (mounted) setTopWorkouts(top);
+        const suggestions = await workoutRecommendationService.getSuggestedWorkouts();
+        if (mounted) setSuggestedWorkouts(suggestions);
       } catch {
-        if (mounted) setTopWorkouts([]);
+        if (mounted) setSuggestedWorkouts([]);
       }
     }
 
-    void loadTop();
+    void loadSuggestions();
 
     return () => {
       mounted = false;
@@ -140,15 +122,15 @@ export default function HomeScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroCard}>
           <View style={styles.heroHeader}>
-          {topWorkouts === null ? (
-            <Text style={styles.body}>Loading your top workouts…</Text>
-          ) : topWorkouts.length === 0 ? (
-            <Text style={styles.body}>No workouts logged yet.</Text>
+          {suggestedWorkouts === null ? (
+            <Text style={styles.body}>Loading your suggested workouts…</Text>
+          ) : suggestedWorkouts.length === 0 ? (
+            <Text style={styles.body}>No workouts available yet.</Text>
           ) : (
             <View style={styles.topBubbles}>
-              {topWorkouts.slice(0, 3).map((workout, index) => (
+              {suggestedWorkouts.slice(0, 3).map((workout, index) => (
                 <Pressable
-                  key={workout.workoutId}
+                  key={workout.id}
                   style={[
                     styles.topBubble,
                     {
@@ -157,14 +139,15 @@ export default function HomeScreen() {
                     }
                   ]}
                   accessibilityRole="button"
-                  onPress={() => router.push(`/workouts/${workout.workoutId}`)}
+                  onPress={() => router.push(`/workouts/${workout.id}`)}
                 >
                   <View style={styles.topBubbleHeader}>
                     <View style={[styles.favoriteDot, { backgroundColor: index === 0 ? "#1f7a5f" : index === 1 ? "#4338ca" : "#c26a00" }]} />
                     <Text style={styles.topBubbleRank}>#{index + 1}</Text>
+                    {workout.isFavourite && <Text style={styles.favouriteIcon}>❤️</Text>}
                   </View>
                   <ExerciseLabel name={workout.name} style={styles.topBubbleName} maxChars={22} />
-                  <Text style={styles.topBubbleSub}>{workout.runCount} runs • {workout.lastRun ? formatShortDate(workout.lastRun) : "-"}</Text>
+                  <Text style={styles.topBubbleSub}>Suggested for you</Text>
                 </Pressable>
               ))}
             </View>
@@ -223,18 +206,6 @@ export default function HomeScreen() {
               <Text style={styles.favoriteRank}>#{index + 1}</Text>
             </View>
           ))}
-        </View>
-
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Quick access</Text>
-          <View style={styles.bubbleGrid}>
-            {quickActions.map((action) => (
-              <Pressable key={action.route} accessibilityRole="button" onPress={() => router.push(action.route as any)} style={[styles.bubble, { backgroundColor: action.bg }]}>
-                <Text style={styles.bubbleIcon}>{action.icon}</Text>
-                <Text style={[styles.bubbleLabel, { color: action.tint }]}>{action.label}</Text>
-              </Pressable>
-            ))}
-          </View>
         </View>
       </ScrollView>
 
@@ -472,6 +443,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: theme.spacing.sm,
     marginBottom: theme.spacing.xs
+  },
+  favouriteIcon: {
+    fontSize: 16,
+    marginLeft: "auto"
   },
   topBubbleRank: {
     color: theme.colors.muted,

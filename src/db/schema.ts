@@ -45,11 +45,13 @@ export const workouts = sqliteTable("workouts", {
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
   createdAt: text("created_at").notNull(),
   isTemplate: integer("is_template", { mode: "boolean" }).notNull(),
-  sourceTemplateId: text("source_template_id")
+  sourceTemplateId: text("source_template_id"),
+  isFavourite: integer("is_favourite", { mode: "boolean" }).notNull().default(false)
 }, (table) => [
   index("workouts_user_idx").on(table.userId),
   index("workouts_template_idx").on(table.isTemplate),
-  index("workouts_source_template_idx").on(table.sourceTemplateId)
+  index("workouts_source_template_idx").on(table.sourceTemplateId),
+  index("workouts_favourite_idx").on(table.isFavourite)
 ]);
 
 export const workoutExercises = sqliteTable("workout_exercises", {

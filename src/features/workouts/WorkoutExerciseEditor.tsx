@@ -10,8 +10,7 @@ export type WorkoutExerciseEditorValue = {
   exerciseId: string;
   exerciseName: string;
   targetSets: string;
-  targetRepRangeLow: string;
-  targetRepRangeHigh: string;
+  targetReps: string;
   targetRestSeconds: string;
   supersetGroupId: string | null;
 };
@@ -42,7 +41,7 @@ export function WorkoutExerciseEditor({
   const setField = (
     field: keyof Pick<
       WorkoutExerciseEditorValue,
-      "targetSets" | "targetRepRangeLow" | "targetRepRangeHigh" | "targetRestSeconds" | "supersetGroupId"
+      "targetSets" | "targetReps" | "targetRestSeconds" | "supersetGroupId"
     >,
     value: string | null
   ) => {
@@ -72,16 +71,10 @@ export function WorkoutExerciseEditor({
           onChangeText={(value) => setField("targetSets", value)}
         />
         <TargetInput
-          accessibilityLabel={`Rep low for ${exercise.exerciseName}`}
-          label="Rep low"
-          value={exercise.targetRepRangeLow}
-          onChangeText={(value) => setField("targetRepRangeLow", value)}
-        />
-        <TargetInput
-          accessibilityLabel={`Rep high for ${exercise.exerciseName}`}
-          label="Rep high"
-          value={exercise.targetRepRangeHigh}
-          onChangeText={(value) => setField("targetRepRangeHigh", value)}
+          accessibilityLabel={`Reps for ${exercise.exerciseName}`}
+          label="Reps"
+          value={exercise.targetReps}
+          onChangeText={(value) => setField("targetReps", value)}
         />
         <TargetInput
           accessibilityLabel={`Rest seconds for ${exercise.exerciseName}`}

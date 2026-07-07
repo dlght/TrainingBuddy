@@ -10,14 +10,16 @@ import type {
 import { runInTransaction } from "../migrate";
 import { createLocalId } from "../../utils/ids";
 
-type WorkoutRow = Omit<Workout, "isTemplate"> & {
+type WorkoutRow = Omit<Workout, "isTemplate" | "isFavourite"> & {
   isTemplate: number | boolean;
+  isFavourite?: number | boolean;
 };
 
 function toWorkout(row: WorkoutRow): Workout {
   return {
     ...row,
-    isTemplate: Boolean(row.isTemplate)
+    isTemplate: Boolean(row.isTemplate),
+    isFavourite: row.isFavourite !== undefined ? Boolean(row.isFavourite) : false
   };
 }
 
@@ -64,7 +66,8 @@ export function createWorkoutRepository(database: DatabaseAdapter) {
                 user_id as userId,
                 created_at as createdAt,
                 is_template as isTemplate,
-                source_template_id as sourceTemplateId
+                source_template_id as sourceTemplateId,
+                is_favourite as isFavourite
            FROM workouts
           ORDER BY is_template DESC, created_at ASC, name ASC`
       );
@@ -79,7 +82,8 @@ export function createWorkoutRepository(database: DatabaseAdapter) {
                 user_id as userId,
                 created_at as createdAt,
                 is_template as isTemplate,
-                source_template_id as sourceTemplateId
+                source_template_id as sourceTemplateId,
+                is_favourite as isFavourite
            FROM workouts
           WHERE is_template = 1
           ORDER BY name ASC`
@@ -95,7 +99,8 @@ export function createWorkoutRepository(database: DatabaseAdapter) {
                 user_id as userId,
                 created_at as createdAt,
                 is_template as isTemplate,
-                source_template_id as sourceTemplateId
+                source_template_id as sourceTemplateId,
+                is_favourite as isFavourite
            FROM workouts
           WHERE id = ?
           LIMIT 1`,
@@ -138,19 +143,73 @@ export function createWorkoutRepository(database: DatabaseAdapter) {
 
     async upsertSeedWorkout(workout: SeedWorkout, createdAt = new Date().toISOString()): Promise<void> {
       await database.runAsync(
-        `INSERT INTO workouts (id, name, user_id, created_at, is_template, source_template_id)
-         VALUES (?, ?, NULL, ?, 1, NULL)
+        `INSERT INTO workouts (id, name, user_id, created_at, is_template, source_template_id, is_favourite)
+         VALUES (?, ?, NULL, ?, 1, NULL, 0)
          ON CONFLICT(id) DO UPDATE SET
            name = excluded.name,
            user_id = NULL,
            created_at = excluded.created_at,
            is_template = 1,
-           source_template_id = NULL`,
+           source_template_id = NULL,
+           is_favourite = excluded.is_favourite`,
         [workout.id, workout.name, createdAt]
       );
 
       await database.runAsync("DELETE FROM workout_exercises WHERE workout_id = ?", [workout.id]);
       await insertWorkoutExercises(database, workout.id, workout.exercises);
+    },
+
+    async toggleFavourite(workoutId: string): Promise<Workout> {
+      const workout = await this.getWorkoutById(workoutId);
+
+      if (!workout) {
+        throw new Error(`Workout ${workoutId} was not found.`);
+      }
+
+      const newFavouriteState = !workout.isFavourite;
+      await database.runAsync("UPDATE workouts SET is_favourite = ? WHERE id = ?", [newFavouriteState ? 1 : 0, workoutId]);
+
+      const updated = await this.getWorkoutById(workoutId);
+
+      if (!updated) {
+        throw new Error(`Workout ${workoutId} was not found after favourite toggle.`);
+      }
+
+      return updated;
+    },
+
+    async listFavouriteWorkouts(): Promise<Workout[]> {
+      const rows = await database.getAllAsync<WorkoutRow>(
+        `SELECT id,
+                name,
+                user_id as userId,
+                created_at as createdAt,
+                is_template as isTemplate,
+                source_template_id as sourceTemplateId,
+                is_favourite as isFavourite
+           FROM workouts
+          WHERE is_favourite = 1
+          ORDER BY created_at DESC`
+      );
+
+      return rows.map(toWorkout);
+    },
+
+    async getSeededWorkouts(): Promise<Workout[]> {
+      const rows = await database.getAllAsync<WorkoutRow>(
+        `SELECT id,
+                name,
+                user_id as userId,
+                created_at as createdAt,
+                is_template as isTemplate,
+                source_template_id as sourceTemplateId,
+                is_favourite as isFavourite
+           FROM workouts
+          WHERE is_template = 1
+          ORDER BY name ASC`
+      );
+
+      return rows.map(toWorkout);
     },
 
     async createWorkout(input: CreateWorkoutInput): Promise<WorkoutWithExercises> {

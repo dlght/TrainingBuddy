@@ -50,19 +50,123 @@ function target(
 
 export const seedExercises: Exercise[] = [
   seedExercise({
-    id: "bodyweight-squat",
-    name: "Bodyweight Squat",
-    muscleGroupId: "legs",
-    equipment: "bodyweight",
-    instructions: "Stand tall, sit your hips back, bend your knees, then stand up with control.",
-    isWarmup: true
+    id: "incline-dumbbell-press",
+    name: "Incline Dumbbell Press",
+    muscleGroupId: "chest",
+    equipment: "dumbbell",
+    instructions: "Perform compound warm-up sets. Choose bench angle that doesn't stress shoulders. Neutral grip is optional. Retract shoulders throughout movement.",
+    isWarmup: false
   }),
   seedExercise({
-    id: "incline-push-up",
-    name: "Incline Push-Up",
+    id: "barbell-squat",
+    name: "Barbell Squat",
+    muscleGroupId: "legs",
+    equipment: "barbell",
+    instructions: "Perform compound warm-up sets. Elevate heels if ankle mobility limits squat depth.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "chest-supported-dumbbell-row",
+    name: "Chest Supported Dumbbell Row",
+    muscleGroupId: "back",
+    equipment: "dumbbell",
+    instructions: "Retract shoulder blades during pull. Stretch fully at bottom. Avoid excessive biceps involvement. Last set: optional 3-5 partial reps after failure.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "seated-leg-curl",
+    name: "Seated Leg Curl",
+    muscleGroupId: "legs",
+    equipment: "machine",
+    instructions: "Keep hips pressed into seat. Control the lowering phase. Squeeze hamstrings at top.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "dumbbell-incline-curl",
+    name: "Dumbbell Incline Curl",
+    muscleGroupId: "arms",
+    equipment: "dumbbell",
+    instructions: "Set bench to 45-60 degrees. Curl dumbbells toward shoulders, then lower slowly. Keep elbows stationary.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "dumbbell-overhead-triceps-extension",
+    name: "Dumbbell Overhead Triceps Extension",
+    muscleGroupId: "arms",
+    equipment: "dumbbell",
+    instructions: "Hold one dumbbell with both hands overhead. Lower behind head, then extend arms upward. Keep elbows close to head.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "behind-body-cable-curl",
+    name: "Behind-the-Body Cable Curl",
+    muscleGroupId: "arms",
+    equipment: "cable",
+    instructions: "Stand facing away from cable machine. Curl handles toward shoulders, then lower with control.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "rope-overhead-triceps-extension",
+    name: "Rope Overhead Triceps Extension",
+    muscleGroupId: "arms",
+    equipment: "cable",
+    instructions: "Face away from cable machine. Hold rope overhead, extend arms, then return slowly. Keep elbows stationary.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "barbell-bench-press",
+    name: "Barbell Bench Press",
     muscleGroupId: "chest",
-    equipment: "bench",
-    instructions: "Place your hands on a stable bench, keep your body straight, lower your chest, then press away.",
+    equipment: "barbell",
+    instructions: "Perform compound warm-up sets. Lower bar to mid-chest, then press upward. Keep feet flat on floor.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "romanian-deadlift",
+    name: "Romanian Deadlift",
+    muscleGroupId: "legs",
+    equipment: "barbell",
+    instructions: "Keep knees slightly bent. Hinge at hips, lower bar while keeping back straight, then return to standing.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "lat-pulldown",
+    name: "Lat Pulldown",
+    muscleGroupId: "back",
+    equipment: "cable",
+    instructions: "Pull bar down to upper chest. Lean back slightly. Control the return. Focus on lats.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "walking-lunges",
+    name: "Walking Lunges",
+    muscleGroupId: "legs",
+    equipment: "bodyweight",
+    instructions: "Step forward, lower hips until both knees bend 90 degrees, then step forward with other leg. Keep torso upright.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "behind-body-cable-lateral-raise",
+    name: "Behind-the-Body Cable Lateral Raise",
+    muscleGroupId: "shoulders",
+    equipment: "cable",
+    instructions: "Stand facing away from cable. Raise arms to sides until parallel to floor. Control the lowering phase.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "reverse-crunch",
+    name: "Reverse Crunch",
+    muscleGroupId: "core",
+    equipment: "bodyweight",
+    instructions: "Lie on back, lift knees toward chest, curl hips off floor, then lower slowly. Keep lower back pressed to floor.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "seated-dumbbell-shoulder-press",
+    name: "Seated Dumbbell Shoulder Press",
+    muscleGroupId: "shoulders",
+    equipment: "dumbbell",
+    instructions: "Dumbbells preferred over barbell. Bench slightly reclined. Press with elbows flared. Lower dumbbells beside shoulders.",
     isWarmup: false
   }),
   seedExercise({
@@ -70,220 +174,95 @@ export const seedExercises: Exercise[] = [
     name: "One-Arm Dumbbell Row",
     muscleGroupId: "back",
     equipment: "dumbbell",
-    instructions: "Support one hand on a bench, pull the dumbbell toward your ribs, then lower slowly.",
+    instructions: "Pull elbow toward hip. Keep forearm vertical. Avoid torso rotation. Last set: optional partial reps after failure.",
     isWarmup: false
   }),
   seedExercise({
-    id: "glute-bridge",
-    name: "Glute Bridge",
+    id: "barbell-hip-thrust",
+    name: "Barbell Hip Thrust",
     muscleGroupId: "legs",
-    equipment: "bodyweight",
-    instructions: "Lie on your back with knees bent, squeeze your glutes, lift your hips, then lower with control.",
-    isWarmup: true
+    equipment: "barbell",
+    instructions: "Keep back neutral. Brace core. Squeeze glutes at top. Alternative: Dumbbell Step-Up.",
+    isWarmup: false
   }),
   seedExercise({
-    id: "dead-bug",
-    name: "Dead Bug",
-    muscleGroupId: "core",
-    equipment: "bodyweight",
-    instructions: "Brace your core, slowly lower opposite arm and leg, then return without arching your back.",
-    isWarmup: true
+    id: "dumbbell-step-up",
+    name: "Dumbbell Step-Up",
+    muscleGroupId: "legs",
+    equipment: "dumbbell",
+    instructions: "Lean slightly forward and alternate legs. Step onto box, drive through heel to stand tall.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "leg-extension",
+    name: "Leg Extension",
+    muscleGroupId: "legs",
+    equipment: "machine",
+    instructions: "Lean back if machine allows for greater rectus femoris stretch. Extend legs fully, then lower with control.",
+    isWarmup: false
+  }),
+  seedExercise({
+    id: "seated-cable-chest-fly",
+    name: "Seated Cable Chest Fly",
+    muscleGroupId: "chest",
+    equipment: "cable",
+    instructions: "Foam pad behind back increases chest stretch. Alternative: Pec Deck. Last set: optional partial reps after failure.",
+    isWarmup: false
   }),
   seedExercise({
     id: "standing-calf-raise",
     name: "Standing Calf Raise",
     muscleGroupId: "legs",
-    equipment: "bodyweight",
-    instructions: "Stand tall, rise onto the balls of your feet, pause briefly, then lower your heels slowly.",
+    equipment: "machine",
+    instructions: "Pause at bottom for stretch. Rise onto balls of feet, squeeze calves at top.",
     isWarmup: false
   }),
   seedExercise({
-    id: "dumbbell-floor-press",
-    name: "Dumbbell Floor Press",
-    muscleGroupId: "chest",
-    equipment: "dumbbell",
-    instructions: "Lie on the floor, press the dumbbells above your chest, then lower until your upper arms touch down.",
-    isWarmup: false
-  }),
-  seedExercise({
-    id: "suitcase-carry",
-    name: "Suitcase Carry",
-    muscleGroupId: "core",
-    equipment: "dumbbell",
-    instructions: "Hold one dumbbell at your side, keep your ribs stacked, and walk without leaning.",
-    isWarmup: false
-  }),
-  seedExercise({
-    id: "reverse-lunge",
-    name: "Reverse Lunge",
-    muscleGroupId: "legs",
-    equipment: "bodyweight",
-    instructions: "Step one foot back, lower until both knees bend, then push through the front foot to stand.",
-    isWarmup: false
-  }),
-  seedExercise({
-    id: "dumbbell-shoulder-press",
-    name: "Dumbbell Shoulder Press",
+    id: "reverse-cable-fly",
+    name: "Reverse Cable Fly",
     muscleGroupId: "shoulders",
-    equipment: "dumbbell",
-    instructions: "Start dumbbells at shoulder height, press overhead, then lower until your elbows are controlled.",
-    isWarmup: false
-  }),
-  seedExercise({
-    id: "band-pull-apart",
-    name: "Band Pull-Apart",
-    muscleGroupId: "back",
-    equipment: "resistance band",
-    instructions: "Hold a band at chest height, pull it apart by squeezing your shoulder blades, then return slowly.",
-    isWarmup: true
-  }),
-  seedExercise({
-    id: "front-plank",
-    name: "Front Plank",
-    muscleGroupId: "core",
-    equipment: "bodyweight",
-    instructions: "Brace your core on forearms and toes, keep a straight line, and breathe steadily.",
-    isWarmup: false
-  }),
-  seedExercise({
-    id: "dumbbell-romanian-deadlift",
-    name: "Dumbbell Romanian Deadlift",
-    muscleGroupId: "legs",
-    equipment: "dumbbell",
-    instructions: "Hold dumbbells in front, hinge your hips back with a soft knee bend, then stand tall.",
-    isWarmup: false
-  }),
-  seedExercise({
-    id: "step-up",
-    name: "Step-Up",
-    muscleGroupId: "legs",
-    equipment: "bench",
-    instructions: "Place one foot on a stable step, drive through that foot to stand tall, then step down carefully.",
-    isWarmup: false
-  }),
-  seedExercise({
-    id: "side-plank",
-    name: "Side Plank",
-    muscleGroupId: "core",
-    equipment: "bodyweight",
-    instructions: "Support yourself on one forearm, stack your feet, lift your hips, and keep your torso long.",
-    isWarmup: false
-  }),
-  seedExercise({
-    id: "dumbbell-hammer-curl",
-    name: "Dumbbell Hammer Curl",
-    muscleGroupId: "arms",
-    equipment: "dumbbell",
-    instructions: "Keep palms facing each other, curl the dumbbells without swinging, then lower slowly.",
-    isWarmup: false
-  }),
-  seedExercise({
-    id: "goblet-squat",
-    name: "Goblet Squat",
-    muscleGroupId: "legs",
-    equipment: "dumbbell",
-    instructions: "Hold a dumbbell at your chest, squat between your knees, then stand with control.",
-    isWarmup: false
-  }),
-  seedExercise({
-    id: "chair-dip",
-    name: "Chair Dip",
-    muscleGroupId: "arms",
-    equipment: "bench",
-    instructions: "Hold the edge of a stable bench, bend your elbows, then press back up without shrugging.",
-    isWarmup: false
-  }),
-  seedExercise({
-    id: "dumbbell-curl",
-    name: "Dumbbell Curl",
-    muscleGroupId: "arms",
-    equipment: "dumbbell",
-    instructions: "Keep your elbows near your sides, curl the dumbbells up, then lower them slowly.",
-    isWarmup: false
-  }),
-  seedExercise({
-    id: "bird-dog",
-    name: "Bird Dog",
-    muscleGroupId: "core",
-    equipment: "bodyweight",
-    instructions: "From hands and knees, reach opposite arm and leg long, pause, then return with control.",
-    isWarmup: true
-  }),
-  seedExercise({
-    id: "hip-hinge-drill",
-    name: "Hip Hinge Drill",
-    muscleGroupId: "legs",
-    equipment: "bodyweight",
-    instructions: "Place hands on your hips, push your hips back while keeping your back long, then stand tall.",
-    isWarmup: true
-  }),
-  seedExercise({
-    id: "wall-push-up",
-    name: "Wall Push-Up",
-    muscleGroupId: "chest",
-    equipment: "bodyweight",
-    instructions: "Place your hands on a wall, lower your chest toward it, then press back to the start.",
-    isWarmup: true
-  }),
-  seedExercise({
-    id: "seated-band-row",
-    name: "Seated Band Row",
-    muscleGroupId: "back",
-    equipment: "resistance band",
-    instructions: "Sit tall, loop a band around your feet, pull your elbows back, then return with control.",
-    isWarmup: false
-  }),
-  seedExercise({
-    id: "pallof-press",
-    name: "Pallof Press",
-    muscleGroupId: "core",
-    equipment: "resistance band",
-    instructions: "Stand side-on to a band anchor, press the band forward, pause, then bring it back to your chest.",
+    equipment: "cable",
+    instructions: "Cables slightly above shoulder height. Start with arms crossed for deeper stretch. Pull arms apart and back.",
     isWarmup: false
   })
 ];
 
 export const sampleWorkouts: SeedWorkout[] = [
   {
-    id: "full-body-a",
-    name: "Full Body A",
+    id: "workout-a",
+    name: "Workout A",
     exercises: [
-      target("bodyweight-squat", 0, 2, 8, 12, 60),
-      target("incline-push-up", 1, 2, 6, 10, 60),
-      target("one-arm-dumbbell-row", 2, 2, 8, 12, 60),
-      target("glute-bridge", 3, 2, 10, 15, 45),
-      target("dead-bug", 4, 2, 6, 8, 30),
-      target("standing-calf-raise", 5, 2, 10, 15, 45),
-      target("dumbbell-floor-press", 6, 2, 8, 12, 60),
-      target("suitcase-carry", 7, 2, 20, 30, 45)
+      target("incline-dumbbell-press", 0, 3, 8, 12, 90),
+      target("barbell-squat", 1, 3, 6, 8, 120),
+      target("chest-supported-dumbbell-row", 2, 3, 8, 10, 90),
+      target("seated-leg-curl", 3, 3, 10, 15, 60),
+      target("dumbbell-incline-curl", 4, 3, 10, 15, 45),
+      target("dumbbell-overhead-triceps-extension", 5, 3, 10, 15, 45)
     ]
   },
   {
-    id: "full-body-b",
-    name: "Full Body B",
+    id: "workout-b",
+    name: "Workout B",
     exercises: [
-      target("reverse-lunge", 0, 2, 6, 10, 60),
-      target("dumbbell-shoulder-press", 1, 2, 8, 12, 60),
-      target("band-pull-apart", 2, 2, 10, 15, 45),
-      target("front-plank", 3, 2, 20, 30, 45),
-      target("dumbbell-romanian-deadlift", 4, 2, 8, 12, 75),
-      target("step-up", 5, 2, 8, 10, 60),
-      target("side-plank", 6, 2, 15, 25, 45),
-      target("dumbbell-hammer-curl", 7, 2, 8, 12, 45)
+      target("barbell-bench-press", 0, 3, 6, 8, 120),
+      target("romanian-deadlift", 1, 3, 8, 10, 90),
+      target("lat-pulldown", 2, 3, 8, 12, 90),
+      target("walking-lunges", 3, 3, 10, 12, 60),
+      target("behind-body-cable-lateral-raise", 4, 3, 12, 15, 45),
+      target("reverse-crunch", 5, 3, 12, 15, 45)
     ]
   },
   {
-    id: "full-body-c",
-    name: "Full Body C",
+    id: "workout-c",
+    name: "Workout C",
     exercises: [
-      target("goblet-squat", 0, 2, 8, 12, 75),
-      target("chair-dip", 1, 2, 6, 10, 60),
-      target("dumbbell-curl", 2, 2, 8, 12, 45),
-      target("bird-dog", 3, 2, 6, 8, 30),
-      target("hip-hinge-drill", 4, 2, 8, 12, 45),
-      target("wall-push-up", 5, 2, 8, 12, 45),
-      target("seated-band-row", 6, 2, 10, 15, 60),
-      target("pallof-press", 7, 2, 8, 12, 45)
+      target("seated-dumbbell-shoulder-press", 0, 3, 8, 12, 90),
+      target("one-arm-dumbbell-row", 1, 3, 8, 12, 90),
+      target("barbell-hip-thrust", 2, 3, 10, 15, 90),
+      target("leg-extension", 3, 3, 10, 15, 60),
+      target("seated-cable-chest-fly", 4, 3, 10, 15, 60),
+      target("standing-calf-raise", 5, 3, 10, 15, 45),
+      target("reverse-cable-fly", 6, 3, 10, 15, 45)
     ]
   }
 ];

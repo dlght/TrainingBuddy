@@ -5,6 +5,7 @@ export type Workout = {
   createdAt: string;
   isTemplate: boolean;
   sourceTemplateId: string | null;
+  isFavourite: boolean;
 };
 
 export type WorkoutExercise = {
