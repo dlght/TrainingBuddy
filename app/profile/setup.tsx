@@ -28,7 +28,9 @@ export default function ProfileSetupScreen() {
           setProfile(loadedProfile);
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("Profile could not be loaded.", error);
+
         if (mounted) {
           setError("Profile could not be loaded.");
         }
@@ -63,7 +65,8 @@ export default function ProfileSetupScreen() {
             await profileService.saveProfile(values);
             resetDraft();
             router.replace("/workouts");
-          } catch {
+          } catch (error) {
+            console.error("Profile could not be saved.", error);
             setError("Profile could not be saved.");
           } finally {
             setIsSaving(false);

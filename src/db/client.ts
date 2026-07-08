@@ -3,7 +3,7 @@ import * as SQLite from "expo-sqlite";
 
 import * as schema from "./schema";
 
-export const DATABASE_NAME = "trainingbuddy.db";
+export const DATABASE_NAME = "trainingbuddy-v2.db";
 
 export type SqlValue = string | number | null;
 export type SqlParams = SqlValue[] | Record<string, SqlValue>;
@@ -30,6 +30,7 @@ export type AppDatabaseClient = {
 };
 
 let singletonClient: Promise<AppDatabaseClient> | null = null;
+let readyClient: Promise<AppDatabaseClient> | null = null;
 
 export function createExpoDatabaseAdapter(sqlite: SQLite.SQLiteDatabase): DatabaseAdapter {
   return {
@@ -75,6 +76,36 @@ export function getDatabaseClient(): Promise<AppDatabaseClient> {
   return singletonClient;
 }
 
+/**
+ * Returns the database client after migrations and seed data have been applied.
+ * Memoized so concurrent callers (e.g. multiple screens mounting at once) share a
+ * single migration/seed run instead of racing separate transactions on the same
+ * underlying SQLite connection.
+ */
+export function getReadyDatabaseClient(): Promise<AppDatabaseClient> {
+  readyClient ??= (async () => {
+    try {
+      const client = await getDatabaseClient();
+      const [{ runMigrations }, { loadSeedData }] = await Promise.all([
+        import("./migrate"),
+        import("./seed/loadSeedData")
+      ]);
+
+      await runMigrations(client.adapter);
+      await loadSeedData(client.adapter);
+
+      return client;
+    } catch (error) {
+      // Allow a later call to retry instead of permanently caching a rejected promise.
+      readyClient = null;
+      throw error;
+    }
+  })();
+
+  return readyClient;
+}
+
 export function resetDatabaseClientForTests(): void {
   singletonClient = null;
+  readyClient = null;
 }

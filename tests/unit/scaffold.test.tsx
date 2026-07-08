@@ -101,7 +101,7 @@ describe("scaffold routes", () => {
   it("renders the home placeholder", async () => {
     const view = await render(<HomeScreen />);
 
-    expect(await view.findByText("Welcome back, Alex")).toBeOnTheScreen();
+    expect(await view.findByText("Workout trend")).toBeOnTheScreen();
   });
 
   it("renders the profile setup form", async () => {

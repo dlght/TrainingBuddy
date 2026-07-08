@@ -1,6 +1,6 @@
 import type { DatabaseAdapter } from "../client";
 
-export const CURRENT_SEED_VERSION = "2026-07-07-3day-fullbody-v1";
+export const CURRENT_SEED_VERSION = "2026-07-08-fullbody-v2";
 
 export type SeedVersion = {
   id: string;

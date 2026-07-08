@@ -134,7 +134,9 @@ export default function NewWorkoutScreen() {
           setSelectedExercises(editorValuesForWorkout(workout, exercisesById));
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("Workout builder could not be loaded.", error);
+
         if (mounted) {
           setError("Workout builder could not be loaded.");
         }
@@ -287,7 +289,8 @@ export default function NewWorkoutScreen() {
         : await workoutBuilderService.createCustomWorkout(values);
 
       router.replace(`/workouts/${savedWorkout.id}`);
-    } catch {
+    } catch (error) {
+      console.error("Workout could not be saved.", error);
       setError("Workout could not be saved.");
     } finally {
       setIsSaving(false);

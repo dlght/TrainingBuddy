@@ -20,8 +20,14 @@ describe("final seed templates", () => {
       "Full Body C"
     ]);
     expect(templates).toHaveLength(3);
-    expect(exercises).toHaveLength(24);
+    expect(exercises).toHaveLength(23);
     expect(exercises.every((exercise) => exercise.imageUrl.startsWith("assets/seed-exercises/"))).toBe(true);
+
+    const expectedExerciseCounts: Record<string, number> = {
+      "Full Body A": 7,
+      "Full Body B": 6,
+      "Full Body C": 7
+    };
 
     for (const template of templates) {
       const workout = await workoutRepository.getWorkoutWithExercises(template.id);
@@ -29,7 +35,7 @@ describe("final seed templates", () => {
       expect(workout).not.toBeNull();
       expect(workout?.isTemplate).toBe(true);
       expect(workout?.userId).toBeNull();
-      expect(workout?.exercises).toHaveLength(8);
+      expect(workout?.exercises).toHaveLength(expectedExerciseCounts[template.name]);
     }
   });
 });

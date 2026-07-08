@@ -53,12 +53,16 @@ export default function HomeScreen() {
           if (mounted) {
             setActiveSession(resumedSession);
           }
-        } catch {
+        } catch (error) {
+          console.error("Active session could not be checked.", error);
+
           if (mounted) {
             setStartupError("Active session could not be checked.");
           }
         }
-      } catch {
+      } catch (error) {
+        console.error("Startup profile check failed; redirecting to profile setup.", error);
+
         if (mounted) {
           router.replace("/profile/setup");
         }
@@ -83,7 +87,8 @@ export default function HomeScreen() {
       try {
         const suggestions = await workoutRecommendationService.getSuggestedWorkouts();
         if (mounted) setSuggestedWorkouts(suggestions);
-      } catch {
+      } catch (error) {
+        console.error("Suggested workouts could not be loaded.", error);
         if (mounted) setSuggestedWorkouts([]);
       }
     }
@@ -106,7 +111,8 @@ export default function HomeScreen() {
     try {
       await sessionService.discardSession(activeSession.session.id);
       setActiveSession(null);
-    } catch {
+    } catch (error) {
+      console.error("Active session could not be discarded.", error);
       setStartupError("Active session could not be discarded.");
     } finally {
       setIsDiscardingSession(false);
@@ -120,6 +126,20 @@ export default function HomeScreen() {
   return (
     <View style={styles.page}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.topHeader}>
+          <Text style={styles.topHeaderTitle}>TrainingBuddy</Text>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Profile"
+            onPress={() => router.push("/profile/setup")}
+            style={styles.profileButton}
+          >
+            <Text style={styles.profileButtonText}>
+              {profile?.name ? profile.name.charAt(0).toUpperCase() : "?"}
+            </Text>
+          </Pressable>
+        </View>
+
         <View style={styles.heroCard}>
           <View style={styles.heroHeader}>
           {suggestedWorkouts === null ? (
@@ -240,6 +260,29 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     gap: theme.spacing.md,
     paddingBottom: 110
+  },
+  topHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  topHeaderTitle: {
+    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: "800"
+  },
+  profileButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.primary
+  },
+  profileButtonText: {
+    color: theme.colors.primaryText,
+    fontSize: 15,
+    fontWeight: "800"
   },
   heroCard: {
     borderRadius: 24,

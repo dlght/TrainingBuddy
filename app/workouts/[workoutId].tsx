@@ -60,7 +60,9 @@ export default function WorkoutDetailScreen() {
         setWorkout(loadedWorkout);
         setExercises(libraryData.exercises);
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("Workout could not be loaded.", error);
+
         if (mounted) {
           setError("Workout could not be loaded.");
         }
@@ -92,7 +94,8 @@ export default function WorkoutDetailScreen() {
     try {
       const copy = await workoutBuilderService.copyTemplateWorkout(workout.id);
       router.replace(`/workouts/${copy.id}`);
-    } catch {
+    } catch (error) {
+      console.error("Sample workout could not be copied.", error);
       setError("Sample workout could not be copied.");
     } finally {
       setIsBusy(false);
@@ -110,7 +113,8 @@ export default function WorkoutDetailScreen() {
     try {
       await workoutBuilderService.deleteCustomWorkout(workout.id);
       router.replace("/workouts");
-    } catch {
+    } catch (error) {
+      console.error("Workout could not be deleted.", error);
       setError("Workout could not be deleted.");
     } finally {
       setIsBusy(false);

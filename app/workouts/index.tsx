@@ -61,22 +61,19 @@ export default function WorkoutsScreen() {
 
   const handleToggleFavourite = async (workoutId: string) => {
     try {
-      const [{ getDatabaseClient }, { runMigrations }, { loadSeedData }] = await Promise.all([
+      const [{ getReadyDatabaseClient }, { createWorkoutRepository }] = await Promise.all([
         import("@/db/client"),
-        import("@/db/migrate"),
-        import("@/db/seed/loadSeedData")
+        import("@/db/repositories/workoutRepository")
       ]);
-      const { adapter } = await getDatabaseClient();
-      await runMigrations(adapter);
-      await loadSeedData(adapter);
-      const { createWorkoutRepository } = await import("@/db/repositories/workoutRepository");
+      const { adapter } = await getReadyDatabaseClient();
       const repo = createWorkoutRepository(adapter as any);
       await repo.toggleFavourite(workoutId);
       
       // Reload workout data
       const data = await workoutListService.listWorkouts();
       setWorkoutData(data);
-    } catch {
+    } catch (error) {
+      console.error("Could not toggle favourite.", error);
       setError("Could not toggle favourite.");
     }
   };
@@ -91,7 +88,9 @@ export default function WorkoutsScreen() {
           setWorkoutData(data);
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("Workouts could not be loaded.", error);
+
         if (mounted) {
           setError("Workouts could not be loaded.");
         }

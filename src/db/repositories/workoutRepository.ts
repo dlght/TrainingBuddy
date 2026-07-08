@@ -150,8 +150,7 @@ export function createWorkoutRepository(database: DatabaseAdapter) {
            user_id = NULL,
            created_at = excluded.created_at,
            is_template = 1,
-           source_template_id = NULL,
-           is_favourite = excluded.is_favourite`,
+           source_template_id = NULL`,
         [workout.id, workout.name, createdAt]
       );
 

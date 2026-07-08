@@ -1,6 +1,5 @@
-import { Image, Pressable, StyleSheet, Text, View } from "react-native";
-import { GestureDetector, Gesture } from "react-native-gesture-handler";
-import { runOnJS, useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { useRef } from "react";
+import { Animated, Image, PanResponder, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { theme } from "@/components/theme";
 import type { Exercise } from "@/models/exercise";
@@ -13,6 +12,8 @@ type SwipeCardProps = {
   isAdded?: boolean;
 };
 
+const SWIPE_THRESHOLD = 100;
+
 export function SwipeCard({
   exercise,
   onSwipeRight,
@@ -20,44 +21,43 @@ export function SwipeCard({
   onSwipeUp,
   isAdded = false
 }: SwipeCardProps) {
-  const translateX = useSharedValue(0);
-  const translateY = useSharedValue(0);
-  const scale = useSharedValue(1);
+  const position = useRef(new Animated.ValueXY()).current;
 
-  const gesture = Gesture.Pan()
-    .onUpdate((event) => {
-      translateX.value = event.translationX;
-      translateY.value = event.translationY;
-    })
-    .onEnd((event) => {
-      const threshold = 100;
+  const resetPosition = () => {
+    Animated.spring(position, { toValue: { x: 0, y: 0 }, useNativeDriver: true }).start();
+  };
 
-      if (event.translationX > threshold) {
-        // Swipe right - add exercise
-        translateX.value = withSpring(500, { damping: 20 });
-        runOnJS(onSwipeRight)();
-      } else if (event.translationX < -threshold) {
-        // Swipe left - skip exercise
-        translateX.value = withSpring(-500, { damping: 20 });
-        runOnJS(onSwipeLeft)();
-      } else if (event.translationY < -threshold) {
-        // Swipe up - show alternatives
-        translateY.value = withSpring(-500, { damping: 20 });
-        runOnJS(onSwipeUp)();
-      } else {
-        // Reset position
-        translateX.value = withSpring(0);
-        translateY.value = withSpring(0);
-      }
+  const flyOut = (toValue: { x: number; y: number }, callback: () => void) => {
+    Animated.timing(position, { toValue, duration: 200, useNativeDriver: true }).start(() => {
+      position.setValue({ x: 0, y: 0 });
+      callback();
     });
+  };
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value }
-    ]
-  }));
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gestureState) =>
+        Math.abs(gestureState.dx) > 5 || Math.abs(gestureState.dy) > 5,
+      onPanResponderMove: Animated.event([null, { dx: position.x, dy: position.y }], {
+        useNativeDriver: true
+      }),
+      onPanResponderRelease: (_, gestureState) => {
+        if (gestureState.dx > SWIPE_THRESHOLD) {
+          flyOut({ x: 500, y: gestureState.dy }, onSwipeRight);
+        } else if (gestureState.dx < -SWIPE_THRESHOLD) {
+          flyOut({ x: -500, y: gestureState.dy }, onSwipeLeft);
+        } else if (gestureState.dy < -SWIPE_THRESHOLD) {
+          flyOut({ x: gestureState.dx, y: -500 }, onSwipeUp);
+        } else {
+          resetPosition();
+        }
+      }
+    })
+  ).current;
+
+  const animatedStyle = {
+    transform: position.getTranslateTransform()
+  };
 
   const muscleGroupColors: Record<string, string> = {
     chest: "#e74c3c",
@@ -71,51 +71,49 @@ export function SwipeCard({
   const muscleGroupColor = muscleGroupColors[exercise.muscleGroupId] || "#95a5a6";
 
   return (
-    <GestureDetector gesture={gesture}>
-      <View style={[styles.card, animatedStyle]}>
-        <Image
-          source={{ uri: exercise.imageUrl }}
-          style={styles.image}
-        />
-        <View style={styles.content}>
-          <Text style={styles.name}>{exercise.name}</Text>
-          <View style={[styles.muscleGroupTag, { backgroundColor: muscleGroupColor }]}>
-            <Text style={styles.muscleGroupText}>{exercise.muscleGroupId}</Text>
+    <Animated.View style={[styles.card, animatedStyle]} {...panResponder.panHandlers}>
+      <Image
+        source={{ uri: exercise.imageUrl }}
+        style={styles.image}
+      />
+      <View style={styles.content}>
+        <Text style={styles.name}>{exercise.name}</Text>
+        <View style={[styles.muscleGroupTag, { backgroundColor: muscleGroupColor }]}>
+          <Text style={styles.muscleGroupText}>{exercise.muscleGroupId}</Text>
+        </View>
+        {isAdded && (
+          <View style={styles.addedBadge}>
+            <Text style={styles.addedText}>Added</Text>
           </View>
-          {isAdded && (
-            <View style={styles.addedBadge}>
-              <Text style={styles.addedText}>Added</Text>
-            </View>
-          )}
-        </View>
-        <View style={styles.actionButtons}>
-          <Pressable
-            style={[styles.actionButton, styles.skipButton]}
-            onPress={onSwipeLeft}
-            accessibilityLabel="Skip exercise"
-            accessibilityRole="button"
-          >
-            <Text style={styles.actionButtonText}>Skip</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.actionButton, styles.addButton]}
-            onPress={onSwipeRight}
-            accessibilityLabel="Add exercise"
-            accessibilityRole="button"
-          >
-            <Text style={styles.actionButtonText}>Add</Text>
-          </Pressable>
-          <Pressable
-            style={[styles.actionButton, styles.alternativesButton]}
-            onPress={onSwipeUp}
-            accessibilityLabel="Show alternatives"
-            accessibilityRole="button"
-          >
-            <Text style={styles.actionButtonText}>Alternatives</Text>
-          </Pressable>
-        </View>
+        )}
       </View>
-    </GestureDetector>
+      <View style={styles.actionButtons}>
+        <Pressable
+          style={[styles.actionButton, styles.skipButton]}
+          onPress={onSwipeLeft}
+          accessibilityLabel="Skip exercise"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionButtonText}>Skip</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.actionButton, styles.addButton]}
+          onPress={onSwipeRight}
+          accessibilityLabel="Add exercise"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionButtonText}>Add</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.actionButton, styles.alternativesButton]}
+          onPress={onSwipeUp}
+          accessibilityLabel="Show alternatives"
+          accessibilityRole="button"
+        >
+          <Text style={styles.actionButtonText}>Alternatives</Text>
+        </Pressable>
+      </View>
+    </Animated.View>
   );
 }
 

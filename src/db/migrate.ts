@@ -44,7 +44,6 @@ CREATE TABLE IF NOT EXISTS workouts (
   created_at TEXT NOT NULL,
   is_template INTEGER NOT NULL DEFAULT 0 CHECK (is_template IN (0, 1)),
   source_template_id TEXT REFERENCES workouts(id) ON DELETE SET NULL,
-  is_favourite INTEGER NOT NULL DEFAULT 0 CHECK (is_favourite IN (0, 1)),
   CHECK ((is_template = 1 AND user_id IS NULL) OR is_template = 0)
 );
 
@@ -112,13 +111,28 @@ export const migrations: Migration[] = [
   {
     id: "0001_initial",
     sql: initialMigrationSql
-  },
-  {
-    id: "0002_add_favourite_to_workouts",
-    sql: `ALTER TABLE workouts ADD COLUMN is_favourite INTEGER NOT NULL DEFAULT 0;
-CREATE INDEX IF NOT EXISTS workouts_favourite_idx ON workouts(is_favourite);`
   }
 ];
+
+/**
+ * Ensures the workouts.is_favourite column (and its index) exist, regardless of
+ * what schema_migrations claims. This column was historically added via an
+ * ID-tracked ALTER TABLE migration, but a since-fixed concurrency bug could leave
+ * a device with the migration ID marked "applied" while the ALTER TABLE itself
+ * never actually committed (rolled back by a racing transaction on the same
+ * connection). Checking the live schema directly makes this self-healing instead
+ * of permanently trusting stale bookkeeping.
+ */
+export async function ensureFavouriteColumn(database: DatabaseAdapter): Promise<void> {
+  const columns = await database.getAllAsync<{ name: string }>("PRAGMA table_info(workouts);");
+  const hasColumn = columns.some((column) => column.name === "is_favourite");
+
+  if (!hasColumn) {
+    await database.execAsync("ALTER TABLE workouts ADD COLUMN is_favourite INTEGER NOT NULL DEFAULT 0;");
+  }
+
+  await database.execAsync("CREATE INDEX IF NOT EXISTS workouts_favourite_idx ON workouts(is_favourite);");
+}
 
 export async function runInTransaction<T>(
   database: DatabaseAdapter,
@@ -153,11 +167,22 @@ export async function runMigrations(
     }
 
     await runInTransaction(database, async () => {
-      await database.execAsync(migration.sql);
+      try {
+        await database.execAsync(migration.sql);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+
+        if (!/duplicate column name/i.test(message)) {
+          throw error;
+        }
+      }
+
       await database.runAsync(
         "INSERT OR IGNORE INTO schema_migrations (id, applied_at) VALUES (?, ?)",
         [migration.id, new Date().toISOString()]
       );
     });
   }
+
+  await ensureFavouriteColumn(database);
 }

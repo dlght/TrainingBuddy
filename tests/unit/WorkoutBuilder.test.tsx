@@ -97,9 +97,9 @@ describe("WorkoutBuilder screen", () => {
     expect(await view.findByText("Bodyweight Squat")).toBeOnTheScreen();
 
     await fireEvent.changeText(view.getByLabelText("Workout name"), "Starter Strength");
-    await fireEvent.press(view.getByLabelText("Add Bodyweight Squat"));
-    await fireEvent.press(view.getByLabelText("Add Incline Push-Up"));
-    await fireEvent.press(view.getByLabelText("Add One-Arm Dumbbell Row"));
+    await fireEvent.press(view.getByLabelText("Add exercise"));
+    await fireEvent.press(view.getByLabelText("Add exercise"));
+    await fireEvent.press(view.getByLabelText("Add exercise"));
     await fireEvent.press(view.getByText("Save workout"));
 
     await waitFor(() => expect(mockCreateCustomWorkout).toHaveBeenCalledTimes(1));
@@ -109,24 +109,24 @@ describe("WorkoutBuilder screen", () => {
         {
           exerciseId: "bodyweight-squat",
           targetSets: "2",
-          targetRepRangeLow: "8",
-          targetRepRangeHigh: "12",
+          targetRepRangeLow: "10",
+          targetRepRangeHigh: "10",
           targetRestSeconds: "60",
           supersetGroupId: null
         },
         {
           exerciseId: "incline-push-up",
           targetSets: "2",
-          targetRepRangeLow: "8",
-          targetRepRangeHigh: "12",
+          targetRepRangeLow: "10",
+          targetRepRangeHigh: "10",
           targetRestSeconds: "60",
           supersetGroupId: null
         },
         {
           exerciseId: "one-arm-dumbbell-row",
           targetSets: "2",
-          targetRepRangeLow: "8",
-          targetRepRangeHigh: "12",
+          targetRepRangeLow: "10",
+          targetRepRangeHigh: "10",
           targetRestSeconds: "60",
           supersetGroupId: null
         }

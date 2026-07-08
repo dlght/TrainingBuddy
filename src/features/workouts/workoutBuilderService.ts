@@ -67,19 +67,8 @@ export function createWorkoutBuilderServiceForDatabase(database: DatabaseAdapter
 }
 
 async function createRuntimeWorkoutBuilderService(): Promise<WorkoutBuilderService> {
-  const [
-    { getDatabaseClient },
-    { runMigrations },
-    { loadSeedData }
-  ] = await Promise.all([
-    import("@/db/client"),
-    import("@/db/migrate"),
-    import("@/db/seed/loadSeedData")
-  ]);
-  const { adapter } = await getDatabaseClient();
-
-  await runMigrations(adapter);
-  await loadSeedData(adapter);
+  const { getReadyDatabaseClient } = await import("@/db/client");
+  const { adapter } = await getReadyDatabaseClient();
 
   return createWorkoutBuilderServiceForDatabase(adapter);
 }

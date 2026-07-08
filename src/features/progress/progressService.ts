@@ -53,19 +53,8 @@ export function createProgressServiceForDatabase(database: DatabaseAdapter): Pro
 }
 
 async function createRuntimeProgressService(): Promise<ProgressService> {
-  const [
-    { getDatabaseClient },
-    { runMigrations },
-    { loadSeedData }
-  ] = await Promise.all([
-    import("@/db/client"),
-    import("@/db/migrate"),
-    import("@/db/seed/loadSeedData")
-  ]);
-  const { adapter } = await getDatabaseClient();
-
-  await runMigrations(adapter);
-  await loadSeedData(adapter);
+  const { getReadyDatabaseClient } = await import("@/db/client");
+  const { adapter } = await getReadyDatabaseClient();
 
   return createProgressServiceForDatabase(adapter);
 }

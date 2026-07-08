@@ -44,7 +44,7 @@ describe("ExerciseLibraryScreen", () => {
   it("browses seeded exercises by muscle group", async () => {
     const view = await render(<ExerciseLibraryScreen />);
 
-    expect(await view.findByText("Incline Push-Up")).toBeOnTheScreen();
+    expect(await view.findByText("Barbell Bench Press")).toBeOnTheScreen();
     expect(view.queryByText("Bodyweight Squat")).toBeNull();
 
     await fireEvent.press(view.getByText("Legs"));

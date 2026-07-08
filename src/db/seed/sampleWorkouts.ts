@@ -50,6 +50,14 @@ function target(
 
 export const seedExercises: Exercise[] = [
   seedExercise({
+    id: "bodyweight-squat",
+    name: "Bodyweight Squat",
+    muscleGroupId: "legs",
+    equipment: "bodyweight",
+    instructions: "Stand tall, sit your hips back, bend your knees, then stand up with control.",
+    isWarmup: true
+  }),
+  seedExercise({
     id: "incline-dumbbell-press",
     name: "Incline Dumbbell Press",
     muscleGroupId: "chest",
@@ -230,19 +238,20 @@ export const seedExercises: Exercise[] = [
 export const sampleWorkouts: SeedWorkout[] = [
   {
     id: "workout-a",
-    name: "Workout A",
+    name: "Full Body A",
     exercises: [
-      target("incline-dumbbell-press", 0, 3, 8, 12, 90),
-      target("barbell-squat", 1, 3, 6, 8, 120),
-      target("chest-supported-dumbbell-row", 2, 3, 8, 10, 90),
-      target("seated-leg-curl", 3, 3, 10, 15, 60),
-      target("dumbbell-incline-curl", 4, 3, 10, 15, 45),
-      target("dumbbell-overhead-triceps-extension", 5, 3, 10, 15, 45)
+      target("bodyweight-squat", 0, 2, 10, 15, 45),
+      target("incline-dumbbell-press", 1, 3, 8, 12, 90),
+      target("barbell-squat", 2, 3, 6, 8, 120),
+      target("chest-supported-dumbbell-row", 3, 3, 8, 10, 90),
+      target("seated-leg-curl", 4, 3, 10, 15, 60),
+      target("dumbbell-incline-curl", 5, 3, 10, 15, 45),
+      target("dumbbell-overhead-triceps-extension", 6, 3, 10, 15, 45)
     ]
   },
   {
     id: "workout-b",
-    name: "Workout B",
+    name: "Full Body B",
     exercises: [
       target("barbell-bench-press", 0, 3, 6, 8, 120),
       target("romanian-deadlift", 1, 3, 8, 10, 90),
@@ -254,7 +263,7 @@ export const sampleWorkouts: SeedWorkout[] = [
   },
   {
     id: "workout-c",
-    name: "Workout C",
+    name: "Full Body C",
     exercises: [
       target("seated-dumbbell-shoulder-press", 0, 3, 8, 12, 90),
       target("one-arm-dumbbell-row", 1, 3, 8, 12, 90),

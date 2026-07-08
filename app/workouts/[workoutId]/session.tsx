@@ -85,6 +85,8 @@ export default function ActiveSessionScreen() {
         }
       })
       .catch((loadError: unknown) => {
+        console.error("Workout session could not be loaded.", loadError);
+
         if (mounted) {
           setError(loadError instanceof Error ? loadError.message : "Workout session could not be loaded.");
         }
@@ -144,6 +146,7 @@ export default function ActiveSessionScreen() {
       });
       restTimer.start(restDurationSeconds);
     } catch (saveError: unknown) {
+      console.error("Set could not be saved.", saveError);
       setError(saveError instanceof Error ? saveError.message : "Set could not be saved.");
     } finally {
       setIsSavingSet(false);
@@ -163,6 +166,7 @@ export default function ActiveSessionScreen() {
       resetSessionStore();
       router.replace(`/workouts/${sessionDetails.workout.id}`);
     } catch (finishError: unknown) {
+      console.error("Session could not be finished.", finishError);
       setError(finishError instanceof Error ? finishError.message : "Session could not be finished.");
     } finally {
       setIsFinishing(false);
@@ -180,7 +184,8 @@ export default function ActiveSessionScreen() {
       await sessionService.discardSession(sessionDetails.session.id);
       resetSessionStore();
       router.replace("/workouts");
-    } catch {
+    } catch (error) {
+      console.error("Session could not be discarded.", error);
       setError("Session could not be discarded.");
     }
   };
