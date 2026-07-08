@@ -27,7 +27,7 @@ export function groupHistorySetsBySession(historySets: ExerciseHistorySet[]): Se
 
   for (const set of sortHistorySets(historySets)) {
     const existing = grouped.get(set.sessionId);
-    const setVolume = set.reps * set.weight;
+    const setVolume = set.weight === null ? 0 : set.reps * set.weight;
 
     if (!existing) {
       grouped.set(set.sessionId, {
@@ -62,11 +62,13 @@ export function calculateVolumeBySession(historySets: ExerciseHistorySet[]): Exe
 }
 
 export function calculateWeightTrendPoints(historySets: ExerciseHistorySet[]): ExerciseWeightPoint[] {
-  return sortHistorySets(historySets).map((set) => ({
-    sessionId: set.sessionId,
-    completedAt: set.completedAt,
-    weight: set.weight
-  }));
+  return sortHistorySets(historySets)
+    .filter((set): set is ExerciseHistorySet & { weight: number } => set.weight !== null)
+    .map((set) => ({
+      sessionId: set.sessionId,
+      completedAt: set.completedAt,
+      weight: set.weight
+    }));
 }
 
 export function formatShortDate(isoDate: string): string {

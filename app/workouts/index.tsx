@@ -1,4 +1,4 @@
-import { Link } from "expo-router";
+import { useRouter } from "expo-router";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
@@ -26,14 +26,22 @@ function WorkoutSection({
   emptyText?: string;
   onToggleFavourite?: (workoutId: string) => void;
 }) {
+  const router = useRouter();
+
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {workouts.length === 0 ? emptyState ?? <Text style={styles.emptyText}>{emptyText}</Text> : null}
       {workouts.map((workout) => (
-        <View key={workout.id} style={styles.workoutCard}>
+        <Pressable
+          key={workout.id}
+          accessibilityRole="button"
+          accessibilityLabel={`Open ${workout.name}`}
+          onPress={() => router.push(`/workouts/${workout.id}`)}
+          style={styles.workoutCard}
+        >
           <View style={styles.workoutHeader}>
-            <Link href={`/workouts/${workout.id}`} style={styles.workoutName}>{workout.name}</Link>
+            <Text style={styles.workoutName}>{workout.name}</Text>
             {onToggleFavourite && (
               <Pressable
                 accessibilityRole="button"
@@ -48,13 +56,14 @@ function WorkoutSection({
           <Text style={styles.workoutMeta}>
             {workout.exercises.length} {workout.exercises.length === 1 ? "exercise" : "exercises"}
           </Text>
-        </View>
+        </Pressable>
       ))}
     </View>
   );
 }
 
 export default function WorkoutsScreen() {
+  const router = useRouter();
   const [workoutData, setWorkoutData] = useState<WorkoutListData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +120,14 @@ export default function WorkoutsScreen() {
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Workouts</Text>
         <Text style={styles.title}>Workouts</Text>
-        <Link href="/workouts/new">Create workout</Link>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Create workout"
+          onPress={() => router.push("/workouts/new")}
+          style={styles.createButton}
+        >
+          <Text style={styles.createButtonText}>+ Create workout</Text>
+        </Pressable>
       </View>
 
       {isLoading ? (
@@ -148,6 +164,20 @@ const styles = StyleSheet.create({
   },
   header: {
     gap: theme.spacing.sm
+  },
+  createButton: {
+    alignSelf: "flex-start",
+    minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: theme.radius.md,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.lg
+  },
+  createButtonText: {
+    color: theme.colors.primaryText,
+    fontSize: 16,
+    fontWeight: "800"
   },
   eyebrow: {
     color: theme.colors.primary,

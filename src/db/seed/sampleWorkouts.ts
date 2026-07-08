@@ -35,7 +35,8 @@ function target(
   targetSets: number,
   targetRepRangeLow: number,
   targetRepRangeHigh: number,
-  targetRestSeconds: number
+  targetRestSeconds: number,
+  targetWeight: number | null = null
 ): WorkoutExerciseSeed {
   return {
     exerciseId,
@@ -44,6 +45,7 @@ function target(
     targetRepRangeLow,
     targetRepRangeHigh,
     targetRestSeconds,
+    targetWeight,
     supersetGroupId: null
   };
 }
@@ -240,38 +242,38 @@ export const sampleWorkouts: SeedWorkout[] = [
     id: "workout-a",
     name: "Full Body A",
     exercises: [
-      target("bodyweight-squat", 0, 2, 10, 15, 45),
-      target("incline-dumbbell-press", 1, 3, 8, 12, 90),
-      target("barbell-squat", 2, 3, 6, 8, 120),
-      target("chest-supported-dumbbell-row", 3, 3, 8, 10, 90),
-      target("seated-leg-curl", 4, 3, 10, 15, 60),
-      target("dumbbell-incline-curl", 5, 3, 10, 15, 45),
-      target("dumbbell-overhead-triceps-extension", 6, 3, 10, 15, 45)
+      target("bodyweight-squat", 0, 2, 10, 15, 45, null),
+      target("incline-dumbbell-press", 1, 3, 8, 12, 90, 12),
+      target("barbell-squat", 2, 3, 6, 8, 120, 40),
+      target("chest-supported-dumbbell-row", 3, 3, 8, 10, 90, 14),
+      target("seated-leg-curl", 4, 3, 10, 15, 60, 25),
+      target("dumbbell-incline-curl", 5, 3, 10, 15, 45, 8),
+      target("dumbbell-overhead-triceps-extension", 6, 3, 10, 15, 45, 10)
     ]
   },
   {
     id: "workout-b",
     name: "Full Body B",
     exercises: [
-      target("barbell-bench-press", 0, 3, 6, 8, 120),
-      target("romanian-deadlift", 1, 3, 8, 10, 90),
-      target("lat-pulldown", 2, 3, 8, 12, 90),
-      target("walking-lunges", 3, 3, 10, 12, 60),
-      target("behind-body-cable-lateral-raise", 4, 3, 12, 15, 45),
-      target("reverse-crunch", 5, 3, 12, 15, 45)
+      target("barbell-bench-press", 0, 3, 6, 8, 120, 40),
+      target("romanian-deadlift", 1, 3, 8, 10, 90, 50),
+      target("lat-pulldown", 2, 3, 8, 12, 90, 35),
+      target("walking-lunges", 3, 3, 10, 12, 60, null),
+      target("behind-body-cable-lateral-raise", 4, 3, 12, 15, 45, 5),
+      target("reverse-crunch", 5, 3, 12, 15, 45, null)
     ]
   },
   {
     id: "workout-c",
     name: "Full Body C",
     exercises: [
-      target("seated-dumbbell-shoulder-press", 0, 3, 8, 12, 90),
-      target("one-arm-dumbbell-row", 1, 3, 8, 12, 90),
-      target("barbell-hip-thrust", 2, 3, 10, 15, 90),
-      target("leg-extension", 3, 3, 10, 15, 60),
-      target("seated-cable-chest-fly", 4, 3, 10, 15, 60),
-      target("standing-calf-raise", 5, 3, 10, 15, 45),
-      target("reverse-cable-fly", 6, 3, 10, 15, 45)
+      target("seated-dumbbell-shoulder-press", 0, 3, 8, 12, 90, 10),
+      target("one-arm-dumbbell-row", 1, 3, 8, 12, 90, 14),
+      target("barbell-hip-thrust", 2, 3, 10, 15, 90, 40),
+      target("leg-extension", 3, 3, 10, 15, 60, 25),
+      target("seated-cable-chest-fly", 4, 3, 10, 15, 60, 15),
+      target("standing-calf-raise", 5, 3, 10, 15, 45, 30),
+      target("reverse-cable-fly", 6, 3, 10, 15, 45, 5)
     ]
   }
 ];

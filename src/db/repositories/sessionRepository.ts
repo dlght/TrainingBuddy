@@ -155,6 +155,36 @@ export function createSessionRepository(database: DatabaseAdapter) {
           ORDER BY completed_at ASC, set_number ASC`,
         [sessionId]
       );
+    },
+
+    async listCompletedSessionsSince(userId: string, sinceIso: string): Promise<{ id: string; endedAt: string }[]> {
+      return database.getAllAsync<{ id: string; endedAt: string }>(
+        `SELECT id, ended_at as endedAt
+           FROM workout_sessions
+          WHERE user_id = ?
+            AND status = 'completed'
+            AND ended_at >= ?
+          ORDER BY ended_at ASC`,
+        [userId, sinceIso]
+      );
+    },
+
+    async listCompletedSetLogsSince(
+      userId: string,
+      sinceIso: string
+    ): Promise<{ completedAt: string; reps: number; weight: number | null }[]> {
+      return database.getAllAsync<{ completedAt: string; reps: number; weight: number | null }>(
+        `SELECT sl.completed_at as completedAt,
+                sl.reps,
+                sl.weight
+           FROM set_logs sl
+           JOIN workout_sessions ws ON ws.id = sl.session_id
+          WHERE ws.user_id = ?
+            AND ws.status = 'completed'
+            AND sl.completed_at >= ?
+          ORDER BY sl.completed_at ASC`,
+        [userId, sinceIso]
+      );
     }
   };
 }

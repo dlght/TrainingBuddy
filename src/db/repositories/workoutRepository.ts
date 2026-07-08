@@ -39,9 +39,10 @@ async function insertWorkoutExercises(
           target_rep_range_low,
           target_rep_range_high,
           target_rest_seconds,
+          target_weight,
           superset_group_id
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         createLocalId("workout_exercise"),
         workoutId,
@@ -51,9 +52,89 @@ async function insertWorkoutExercises(
         exercise.targetRepRangeLow,
         exercise.targetRepRangeHigh,
         exercise.targetRestSeconds,
+        exercise.targetWeight,
         exercise.supersetGroupId
       ]
     );
+  }
+}
+
+/**
+ * Replaces a workout's exercises without ever deleting a row that a logged set
+ * still points to. Re-saving a workout (via the builder, or re-running the
+ * sample-workout seed) used to DELETE all of a workout's workout_exercises rows
+ * and re-INSERT fresh ones — which throws a FOREIGN KEY constraint failure the
+ * moment any set_logs row references one of those rows (set_logs.workout_exercise_id
+ * is ON DELETE RESTRICT), i.e. as soon as the workout has ever been used in a
+ * session. Upserting by the existing UNIQUE(workout_id, order_index) key instead
+ * keeps each row's id stable across saves, so history stays valid. Rows beyond
+ * the new exercise count are best-effort deleted (a shrink case); if one is still
+ * referenced by history the delete is skipped rather than failing the whole save.
+ */
+async function upsertWorkoutExercises(
+  database: DatabaseAdapter,
+  workoutId: string,
+  exercises: WorkoutExerciseSeed[]
+): Promise<void> {
+  for (const exercise of exercises) {
+    await database.runAsync(
+      `INSERT INTO workout_exercises (
+          id,
+          workout_id,
+          exercise_id,
+          order_index,
+          target_sets,
+          target_rep_range_low,
+          target_rep_range_high,
+          target_rest_seconds,
+          target_weight,
+          superset_group_id
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(workout_id, order_index) DO UPDATE SET
+          exercise_id = excluded.exercise_id,
+          target_sets = excluded.target_sets,
+          target_rep_range_low = excluded.target_rep_range_low,
+          target_rep_range_high = excluded.target_rep_range_high,
+          target_rest_seconds = excluded.target_rest_seconds,
+          target_weight = excluded.target_weight,
+          superset_group_id = excluded.superset_group_id`,
+      [
+        createLocalId("workout_exercise"),
+        workoutId,
+        exercise.exerciseId,
+        exercise.orderIndex,
+        exercise.targetSets,
+        exercise.targetRepRangeLow,
+        exercise.targetRepRangeHigh,
+        exercise.targetRestSeconds,
+        exercise.targetWeight,
+        exercise.supersetGroupId
+      ]
+    );
+  }
+
+  const keptOrderIndexes = exercises.map((exercise) => exercise.orderIndex);
+  const staleRows = await database.getAllAsync<{ id: string; orderIndex: number }>(
+    `SELECT id, order_index as orderIndex FROM workout_exercises WHERE workout_id = ?`,
+    [workoutId]
+  );
+
+  for (const row of staleRows) {
+    if (keptOrderIndexes.includes(row.orderIndex)) {
+      continue;
+    }
+
+    try {
+      await database.runAsync("DELETE FROM workout_exercises WHERE id = ?", [row.id]);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      if (!/foreign key constraint failed/i.test(message)) {
+        throw error;
+      }
+      // Still referenced by logged history — leave it in place rather than fail the save.
+    }
   }
 }
 
@@ -120,6 +201,7 @@ export function createWorkoutRepository(database: DatabaseAdapter) {
                 target_rep_range_low as targetRepRangeLow,
                 target_rep_range_high as targetRepRangeHigh,
                 target_rest_seconds as targetRestSeconds,
+                target_weight as targetWeight,
                 superset_group_id as supersetGroupId
            FROM workout_exercises
           WHERE workout_id = ?
@@ -154,8 +236,7 @@ export function createWorkoutRepository(database: DatabaseAdapter) {
         [workout.id, workout.name, createdAt]
       );
 
-      await database.runAsync("DELETE FROM workout_exercises WHERE workout_id = ?", [workout.id]);
-      await insertWorkoutExercises(database, workout.id, workout.exercises);
+      await upsertWorkoutExercises(database, workout.id, workout.exercises);
     },
 
     async toggleFavourite(workoutId: string): Promise<Workout> {
@@ -272,8 +353,7 @@ export function createWorkoutRepository(database: DatabaseAdapter) {
 
       await runInTransaction(database, async () => {
         await database.runAsync("UPDATE workouts SET name = ? WHERE id = ?", [input.name, id]);
-        await database.runAsync("DELETE FROM workout_exercises WHERE workout_id = ?", [id]);
-        await insertWorkoutExercises(database, id, input.exercises);
+        await upsertWorkoutExercises(database, id, input.exercises);
       });
 
       const updated = await this.getWorkoutWithExercises(id);
@@ -337,6 +417,7 @@ export function createWorkoutRepository(database: DatabaseAdapter) {
           targetRepRangeLow: exercise.targetRepRangeLow,
           targetRepRangeHigh: exercise.targetRepRangeHigh,
           targetRestSeconds: exercise.targetRestSeconds,
+          targetWeight: exercise.targetWeight,
           supersetGroupId: exercise.supersetGroupId
         }))
       });

@@ -135,6 +135,11 @@ export class TestDatabase implements DatabaseAdapter {
       return { changes: 1 };
     }
 
+    if (normalized.startsWith("delete from workout_exercises where id =")) {
+      this.workoutExercises.delete(String(row[0]));
+      return { changes: 1 };
+    }
+
     if (normalized.startsWith("delete from workout_exercises")) {
       for (const [id, exercise] of this.workoutExercises) {
         if (exercise.workoutId === row[0]) {
@@ -145,16 +150,26 @@ export class TestDatabase implements DatabaseAdapter {
     }
 
     if (normalized.startsWith("insert into workout_exercises")) {
+      const workoutId = String(row[1]);
+      const orderIndex = Number(row[3]);
+      const isUpsert = normalized.includes("on conflict");
+      const existing = isUpsert
+        ? Array.from(this.workoutExercises.values()).find(
+            (exercise) => exercise.workoutId === workoutId && exercise.orderIndex === orderIndex
+          )
+        : undefined;
+
       const workoutExercise: WorkoutExercise = {
-        id: String(row[0]),
-        workoutId: String(row[1]),
+        id: existing?.id ?? String(row[0]),
+        workoutId,
         exerciseId: String(row[2]),
-        orderIndex: Number(row[3]),
+        orderIndex,
         targetSets: Number(row[4]),
         targetRepRangeLow: Number(row[5]),
         targetRepRangeHigh: Number(row[6]),
         targetRestSeconds: Number(row[7]),
-        supersetGroupId: row[8] === null ? null : String(row[8])
+        targetWeight: row[8] === null || row[8] === undefined ? null : Number(row[8]),
+        supersetGroupId: row[9] === null ? null : String(row[9])
       };
 
       this.workoutExercises.set(workoutExercise.id, workoutExercise);
@@ -362,7 +377,7 @@ export class TestDatabase implements DatabaseAdapter {
               current && current.completedAt.localeCompare(setLog.completedAt) >= 0
                 ? current.completedAt
                 : setLog.completedAt,
-            volume: (current?.volume ?? 0) + setLog.reps * setLog.weight
+            volume: (current?.volume ?? 0) + setLog.reps * (setLog.weight ?? 0)
           });
         }
 
@@ -370,11 +385,13 @@ export class TestDatabase implements DatabaseAdapter {
       }
 
       if (normalized.includes("sl.weight") && !normalized.includes("sl.set_number")) {
-        return completedExerciseSets.map((setLog) => ({
-          sessionId: setLog.sessionId,
-          completedAt: setLog.completedAt,
-          weight: setLog.weight
-        })) as T[];
+        return completedExerciseSets
+          .filter((setLog) => setLog.weight !== null)
+          .map((setLog) => ({
+            sessionId: setLog.sessionId,
+            completedAt: setLog.completedAt,
+            weight: setLog.weight
+          })) as T[];
       }
 
       return completedExerciseSets.map((setLog) => {

@@ -7,18 +7,11 @@ import { ExerciseLabel } from "@/components/ExerciseLabel";
 import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
 import { profileService } from "@/features/profile/profileService";
+import { dashboardService } from "@/features/progress/dashboardService";
+import type { WeeklyDashboardStats } from "@/features/progress/dashboardStats";
 import { sessionService, type ActiveSessionDetails } from "@/features/sessions/sessionService";
 import { workoutRecommendationService } from "@/features/workouts/workoutRecommendationService";
 import type { UserProfile } from "@/models/user";
-import { formatShortDate } from "@/features/progress/progressCalculations";
-
-const weeklyBars = [3, 5, 4, 6, 7, 4];
-const weekLabels = ["M", "T", "W", "T", "F", "S"];
-const favoriteWorkouts = [
-  { name: "Upper Body Push", count: 12, accent: "#1f7a5f" },
-  { name: "Leg Day", count: 8, accent: "#4338ca" },
-  { name: "Core Flow", count: 6, accent: "#c26a00" }
-];
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -28,6 +21,7 @@ export default function HomeScreen() {
   const [isDiscardingSession, setIsDiscardingSession] = useState(false);
   const [startupError, setStartupError] = useState<string | null>(null);
   const [suggestedWorkouts, setSuggestedWorkouts] = useState<{ id: string; name: string; isFavourite: boolean }[] | null>(null);
+  const [dashboardStats, setDashboardStats] = useState<WeeklyDashboardStats | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -99,6 +93,26 @@ export default function HomeScreen() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadDashboardStats() {
+      try {
+        const stats = await dashboardService.getWeeklyDashboardStats();
+        if (mounted) setDashboardStats(stats);
+      } catch (error) {
+        console.error("Dashboard stats could not be loaded.", error);
+        if (mounted) setDashboardStats({ days: [], consistencyPercent: 0 });
+      }
+    }
+
+    void loadDashboardStats();
+
+    return () => {
+      mounted = false;
+    };
+  }, [activeSession]);
 
   const discardActiveSession = async () => {
     if (!activeSession) {
@@ -173,10 +187,10 @@ export default function HomeScreen() {
             </View>
           )}
           
-          {/* Fallback static favorites removed in favor of dynamic top workouts */}
-          
             <View style={styles.statCard}>
-              <Text style={styles.statValue}>82%</Text>
+              <Text style={styles.statValue}>
+                {dashboardStats === null ? "…" : `${dashboardStats.consistencyPercent}%`}
+              </Text>
               <Text style={styles.statLabel}>consistency</Text>
             </View>
           </View>
@@ -201,31 +215,34 @@ export default function HomeScreen() {
 
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Workout trend</Text>
-          <View style={styles.chartRow}>
-            {weeklyBars.map((height, index) => (
-              <View key={`week-${index}`} style={styles.chartColumn}>
-                <View style={[styles.chartBar, { height: height * 10 }]} />
-                <Text style={styles.chartLabel}>{weekLabels[index]}</Text>
-              </View>
-            ))}
-          </View>
-          <Text style={styles.chartCaption}>Your recent weekly workout volume</Text>
-        </View>
+          {dashboardStats === null ? (
+            <Text style={styles.body}>Loading your workout trend…</Text>
+          ) : (
+            <>
+              <View style={styles.chartRow}>
+                {(() => {
+                  const maxVolume = Math.max(1, ...dashboardStats.days.map((day) => day.volume));
 
-        <View style={styles.sectionCard}>
-          <Text style={styles.sectionTitle}>Favorite workouts</Text>
-          {favoriteWorkouts.map((workout, index) => (
-            <View key={`${workout.name}-${index}`} style={styles.favoriteRow}>
-              <View style={styles.favoriteMeta}>
-                <View style={[styles.favoriteDot, { backgroundColor: workout.accent }]} />
-                <View>
-                  <Text style={styles.favoriteName}>{workout.name}</Text>
-                  <Text style={styles.favoriteCount}>{workout.count} sessions</Text>
-                </View>
+                  return dashboardStats.days.map((day) => (
+                    <View key={day.dateKey} style={styles.chartColumn}>
+                      <View
+                        style={[
+                          styles.chartBar,
+                          { height: day.volume === 0 ? 4 : Math.max(8, (day.volume / maxVolume) * 120) }
+                        ]}
+                      />
+                      <Text style={styles.chartLabel}>{day.label}</Text>
+                    </View>
+                  ));
+                })()}
               </View>
-              <Text style={styles.favoriteRank}>#{index + 1}</Text>
-            </View>
-          ))}
+              <Text style={styles.chartCaption}>
+                {dashboardStats.days.every((day) => day.volume === 0)
+                  ? "No workouts logged yet this week."
+                  : "Your recent weekly workout volume"}
+              </Text>
+            </>
+          )}
         </View>
       </ScrollView>
 
@@ -431,39 +448,10 @@ const styles = StyleSheet.create({
     color: theme.colors.muted,
     fontSize: 13
   },
-  favoriteRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: theme.spacing.sm,
-    borderTopWidth: 1,
-    borderTopColor: "#eef2f7"
-  },
-  favoriteMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: theme.spacing.sm,
-    flex: 1
-  },
   favoriteDot: {
     width: 10,
     height: 10,
     borderRadius: 5
-  },
-  favoriteName: {
-    color: theme.colors.text,
-    fontSize: 14,
-    fontWeight: "700"
-  },
-  favoriteCount: {
-    color: theme.colors.muted,
-    fontSize: 12,
-    marginTop: 2
-  },
-  favoriteRank: {
-    color: theme.colors.primary,
-    fontSize: 14,
-    fontWeight: "800"
   },
   topBubbles: {
     flexDirection: "row",

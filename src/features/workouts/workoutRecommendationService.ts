@@ -19,31 +19,33 @@ export function createWorkoutRecommendationService(database: DatabaseAdapter): W
       const suggested: SuggestedWorkout[] = [];
       const seenIds = new Set<string>();
 
-      // 1. Get top 3 most completed workouts
-      const topWorkouts = await workoutRepository.getTopWorkouts(3);
-      for (const workout of topWorkouts) {
-        if (!seenIds.has(workout.workoutId)) {
+      // 1. Favourited workouts take priority so they "pop" on the dashboard,
+      // in the order listFavouriteWorkouts() returns (most recently created first).
+      const favouriteWorkouts = await workoutRepository.listFavouriteWorkouts();
+      for (const workout of favouriteWorkouts) {
+        if (suggested.length >= 3) break;
+        if (!seenIds.has(workout.id)) {
           suggested.push({
-            id: workout.workoutId,
+            id: workout.id,
             name: workout.name,
-            isFavourite: false // We'll update this after getting full workout data
+            isFavourite: true
           });
-          seenIds.add(workout.workoutId);
+          seenIds.add(workout.id);
         }
       }
 
-      // If we have fewer than 3, fill with favourites
+      // 2. Fill remaining slots with the top 3 most completed workouts.
       if (suggested.length < 3) {
-        const favouriteWorkouts = await workoutRepository.listFavouriteWorkouts();
-        for (const workout of favouriteWorkouts) {
+        const topWorkouts = await workoutRepository.getTopWorkouts(3);
+        for (const workout of topWorkouts) {
           if (suggested.length >= 3) break;
-          if (!seenIds.has(workout.id)) {
+          if (!seenIds.has(workout.workoutId)) {
             suggested.push({
-              id: workout.id,
+              id: workout.workoutId,
               name: workout.name,
-              isFavourite: workout.isFavourite
+              isFavourite: false // We'll update this after getting full workout data
             });
-            seenIds.add(workout.id);
+            seenIds.add(workout.workoutId);
           }
         }
       }

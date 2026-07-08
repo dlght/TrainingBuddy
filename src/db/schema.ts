@@ -67,6 +67,7 @@ export const workoutExercises = sqliteTable("workout_exercises", {
   targetRepRangeLow: integer("target_rep_range_low").notNull(),
   targetRepRangeHigh: integer("target_rep_range_high").notNull(),
   targetRestSeconds: integer("target_rest_seconds").notNull(),
+  targetWeight: real("target_weight"),
   supersetGroupId: text("superset_group_id")
 }, (table) => [
   uniqueIndex("workout_exercises_workout_order_unique").on(table.workoutId, table.orderIndex),
@@ -101,7 +102,7 @@ export const setLogs = sqliteTable("set_logs", {
     .references(() => workoutExercises.id, { onDelete: "restrict" }),
   setNumber: integer("set_number").notNull(),
   reps: integer("reps").notNull(),
-  weight: real("weight").notNull(),
+  weight: real("weight"),
   completedAt: text("completed_at").notNull(),
   exerciseNameSnapshot: text("exercise_name_snapshot").notNull(),
   targetRepsSnapshot: text("target_reps_snapshot"),

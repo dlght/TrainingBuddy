@@ -6,6 +6,7 @@ export type WorkoutExerciseTargetValues = {
   targetRepRangeLow: string | number;
   targetRepRangeHigh: string | number;
   targetRestSeconds: string | number;
+  targetWeight?: string | number | null;
   supersetGroupId?: string | null;
 };
 
@@ -15,7 +16,10 @@ export type WorkoutDraftValues = {
 };
 
 export type WorkoutExerciseTargetErrors = Partial<
-  Record<"exerciseId" | "targetSets" | "targetRepRangeLow" | "targetRepRangeHigh" | "targetRestSeconds", string>
+  Record<
+    "exerciseId" | "targetSets" | "targetRepRangeLow" | "targetRepRangeHigh" | "targetRestSeconds" | "targetWeight",
+    string
+  >
 >;
 
 export type WorkoutValidationErrors = {
@@ -55,6 +59,26 @@ function normalizeSupersetGroupId(groupId: string | null | undefined): string | 
   return normalized.length > 0 ? normalized : null;
 }
 
+function nonNegativeNumberOrNull(
+  value: string | number | null | undefined
+): { isValid: true; value: number | null } | { isValid: false } {
+  if (value === null || value === undefined) {
+    return { isValid: true, value: null };
+  }
+
+  if (typeof value === "string" && value.trim().length === 0) {
+    return { isValid: true, value: null };
+  }
+
+  const parsed = typeof value === "number" ? value : Number(value);
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return { isValid: false };
+  }
+
+  return { isValid: true, value: parsed };
+}
+
 export function validateWorkoutName(name: string): string | null {
   return name.trim().length > 0 ? null : "Name this workout.";
 }
@@ -71,6 +95,7 @@ export function validateWorkoutExerciseTarget(
   const targetRepRangeLow = integerFrom(target.targetRepRangeLow);
   const targetRepRangeHigh = integerFrom(target.targetRepRangeHigh);
   const targetRestSeconds = integerFrom(target.targetRestSeconds);
+  const targetWeightResult = nonNegativeNumberOrNull(target.targetWeight);
 
   if (!exerciseId) {
     errors.exerciseId = "Choose an exercise.";
@@ -94,6 +119,10 @@ export function validateWorkoutExerciseTarget(
     errors.targetRestSeconds = "Rest must be 0 seconds or more.";
   }
 
+  if (!targetWeightResult.isValid) {
+    errors.targetWeight = "Weight must be 0 or more.";
+  }
+
   if (Object.keys(errors).length > 0) {
     return { errors };
   }
@@ -106,6 +135,7 @@ export function validateWorkoutExerciseTarget(
       targetRepRangeLow: targetRepRangeLow as number,
       targetRepRangeHigh: targetRepRangeHigh as number,
       targetRestSeconds: targetRestSeconds as number,
+      targetWeight: targetWeightResult.isValid ? targetWeightResult.value : null,
       supersetGroupId: normalizeSupersetGroupId(target.supersetGroupId)
     }
   };

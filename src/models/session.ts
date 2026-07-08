@@ -16,7 +16,7 @@ export type SetLog = {
   workoutExerciseId: string;
   setNumber: number;
   reps: number;
-  weight: number;
+  weight: number | null;
   completedAt: string;
   exerciseNameSnapshot: string;
   targetRepsSnapshot: string | null;
@@ -34,7 +34,7 @@ export type ExerciseHistorySet = {
   completedAt: string;
   setNumber: number;
   reps: number;
-  weight: number;
+  weight: number | null;
   exerciseNameSnapshot: string;
 };
 

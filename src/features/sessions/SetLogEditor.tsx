@@ -7,6 +7,7 @@ import {
   validateSetLogValues,
   type SetLogValidationErrors
 } from "./sessionValidation";
+import { formatRestTime } from "./useRestTimer";
 
 export type SetLogEditorValues = {
   reps: string;
@@ -15,14 +16,33 @@ export type SetLogEditorValues = {
 
 type SetLogEditorProps = {
   isSaving?: boolean;
+  isBodyweight?: boolean;
+  isResting?: boolean;
+  restRemainingSeconds?: number;
+  defaultReps?: number | null;
+  defaultWeight?: number | null;
+  onSkipRest?: () => void;
   onSubmit: (values: SetLogEditorValues) => Promise<void> | void;
 };
 
-export function SetLogEditor({ isSaving = false, onSubmit }: SetLogEditorProps) {
-  const [values, setValues] = useState<SetLogEditorValues>({
-    reps: "",
-    weight: "",
-  });
+function defaultValues(defaultReps: number | null, defaultWeight: number | null): SetLogEditorValues {
+  return {
+    reps: defaultReps !== null && defaultReps !== undefined ? String(defaultReps) : "",
+    weight: defaultWeight !== null && defaultWeight !== undefined ? String(defaultWeight) : ""
+  };
+}
+
+export function SetLogEditor({
+  isSaving = false,
+  isBodyweight = false,
+  isResting = false,
+  restRemainingSeconds = 0,
+  defaultReps = null,
+  defaultWeight = null,
+  onSkipRest,
+  onSubmit
+}: SetLogEditorProps) {
+  const [values, setValues] = useState<SetLogEditorValues>(() => defaultValues(defaultReps, defaultWeight));
   const [errors, setErrors] = useState<SetLogValidationErrors>({});
 
   const setField = (field: keyof SetLogEditorValues, value: string) => {
@@ -38,7 +58,7 @@ export function SetLogEditor({ isSaving = false, onSubmit }: SetLogEditorProps) 
   };
 
   const submit = async () => {
-    const result = validateSetLogValues(values);
+    const result = validateSetLogValues(values, isBodyweight);
 
     if (!result.isValid) {
       setErrors(result.errors);
@@ -47,9 +67,13 @@ export function SetLogEditor({ isSaving = false, onSubmit }: SetLogEditorProps) 
 
     setErrors({});
     await onSubmit(values);
-    setValues({
-      reps: "",
-      weight: values.weight
+    setValues((current) => {
+      const next = defaultValues(defaultReps, defaultWeight);
+
+      return {
+        reps: next.reps,
+        weight: defaultWeight !== null ? next.weight : current.weight
+      };
     });
   };
 
@@ -64,25 +88,40 @@ export function SetLogEditor({ isSaving = false, onSubmit }: SetLogEditorProps) 
           value={values.reps}
           onChangeText={(value) => setField("reps", value)}
         />
-        <Field
-          accessibilityLabel="Weight"
-          error={errors.weight}
-          label="Weight"
-          value={values.weight}
-          onChangeText={(value) => setField("weight", value)}
-        />
+        {isBodyweight ? null : (
+          <Field
+            accessibilityLabel="Weight"
+            error={errors.weight}
+            label="Weight"
+            value={values.weight}
+            onChangeText={(value) => setField("weight", value)}
+          />
+        )}
       </View>
+      <View style={styles.restRow}>
+        <Text style={styles.restText}>Rest {formatRestTime(restRemainingSeconds)}</Text>
+        <Pressable
+          accessibilityLabel="Skip rest"
+          accessibilityRole="button"
+          disabled={!isResting}
+          onPress={onSkipRest}
+          style={[styles.skipButton, !isResting ? styles.skipButtonDisabled : null]}
+        >
+          <Text style={[styles.skipButtonText, !isResting ? styles.skipButtonTextDisabled : null]}>Skip rest</Text>
+        </Pressable>
+      </View>
+
       <Pressable
         accessibilityLabel="Submit set log"
         accessibilityRole="button"
-        disabled={isSaving}
+        disabled={isSaving || isResting}
         onPress={submit}
-        style={[styles.primaryButton, isSaving ? styles.disabled : null]}
+        style={[styles.primaryButton, isSaving || isResting ? styles.disabled : null]}
       >
         {isSaving ? (
           <ActivityIndicator color={theme.colors.primaryText} />
         ) : (
-          <Text style={styles.primaryButtonText}>Log set</Text>
+          <Text style={styles.primaryButtonText}>{isResting ? "Resting…" : "Log set"}</Text>
         )}
       </Pressable>
     </View>
@@ -138,7 +177,8 @@ const styles = StyleSheet.create({
   },
   field: {
     minWidth: 90,
-    flex: 1,
+    flexGrow: 0,
+    flexBasis: "48%",
     gap: theme.spacing.xs
   },
   label: {
@@ -162,6 +202,38 @@ const styles = StyleSheet.create({
     color: "#b42318",
     fontSize: 12,
     fontWeight: "700"
+  },
+  restRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm
+  },
+  restText: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "800"
+  },
+  skipButton: {
+    minHeight: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: theme.radius.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: theme.spacing.md
+  },
+  skipButtonDisabled: {
+    opacity: 0.4
+  },
+  skipButtonText: {
+    color: theme.colors.text,
+    fontSize: 14,
+    fontWeight: "800"
+  },
+  skipButtonTextDisabled: {
+    color: theme.colors.muted
   },
   primaryButton: {
     minHeight: 48,

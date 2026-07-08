@@ -22,9 +22,47 @@ describe("workout validation", () => {
         targetRepRangeLow: 8,
         targetRepRangeHigh: 12,
         targetRestSeconds: 60,
+        targetWeight: null,
         supersetGroupId: "superset-a"
       }
     });
+  });
+
+  it("accepts an optional target weight and rejects a negative one", () => {
+    const withWeight = validateWorkoutExerciseTarget({
+      exerciseId: "barbell-squat",
+      targetSets: "3",
+      targetRepRangeLow: "8",
+      targetRepRangeHigh: "12",
+      targetRestSeconds: "60",
+      targetWeight: "42.5"
+    });
+
+    expect(withWeight.errors.targetWeight).toBeUndefined();
+    expect(withWeight.value?.targetWeight).toBe(42.5);
+
+    const blankWeight = validateWorkoutExerciseTarget({
+      exerciseId: "barbell-squat",
+      targetSets: "3",
+      targetRepRangeLow: "8",
+      targetRepRangeHigh: "12",
+      targetRestSeconds: "60",
+      targetWeight: ""
+    });
+
+    expect(blankWeight.errors.targetWeight).toBeUndefined();
+    expect(blankWeight.value?.targetWeight).toBeNull();
+
+    const negativeWeight = validateWorkoutExerciseTarget({
+      exerciseId: "barbell-squat",
+      targetSets: "3",
+      targetRepRangeLow: "8",
+      targetRepRangeHigh: "12",
+      targetRestSeconds: "60",
+      targetWeight: "-5"
+    });
+
+    expect(negativeWeight.errors.targetWeight).toBe("Weight must be 0 or more.");
   });
 
   it("rejects empty workouts before they can be saved or started", () => {

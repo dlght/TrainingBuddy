@@ -53,6 +53,7 @@ function editorValueForExercise(exercise: Exercise, index: number): WorkoutExerc
     targetSets: "2",
     targetReps: "10",
     targetRestSeconds: "60",
+    targetWeight: "",
     supersetGroupId: null
   };
 }
@@ -71,6 +72,7 @@ function editorValuesForWorkout(
       targetSets: String(workoutExercise.targetSets),
       targetReps: String(workoutExercise.targetRepRangeLow || "10"),
       targetRestSeconds: String(workoutExercise.targetRestSeconds),
+      targetWeight: workoutExercise.targetWeight === null ? "" : String(workoutExercise.targetWeight),
       supersetGroupId: workoutExercise.supersetGroupId
     };
   });
@@ -164,6 +166,11 @@ export default function NewWorkoutScreen() {
   const selectedExerciseIds = useMemo(
     () => selectedExercises.map((exercise) => exercise.exerciseId),
     [selectedExercises]
+  );
+
+  const exercisesById = useMemo(
+    () => new Map(exercises.map((exercise) => [exercise.id, exercise])),
+    [exercises]
   );
 
   const filteredExercises = useMemo(() => {
@@ -268,6 +275,7 @@ export default function NewWorkoutScreen() {
         targetRepRangeLow: exercise.targetReps,
         targetRepRangeHigh: exercise.targetReps,
         targetRestSeconds: exercise.targetRestSeconds,
+        targetWeight: exercisesById.get(exercise.exerciseId)?.equipment === "bodyweight" ? null : exercise.targetWeight,
         supersetGroupId: exercise.supersetGroupId
       }))
     };
@@ -343,6 +351,7 @@ export default function NewWorkoutScreen() {
             errors={Object.values(validationErrors.exerciseTargets?.[index] ?? {})}
             exercise={exercise}
             index={index}
+            isBodyweight={exercisesById.get(exercise.exerciseId)?.equipment === "bodyweight"}
             key={exercise.key}
             onChange={(value) => updateSelectedExercise(index, value)}
             onMoveDown={() => moveSelectedExercise(index, 1)}

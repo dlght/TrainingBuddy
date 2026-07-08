@@ -101,7 +101,7 @@ describe("ActiveSession screen", () => {
     });
   });
 
-  it("logs a set, starts/skips rest, steps through exercises, and finishes", async () => {
+  it("logs a set, starts/skips rest, auto-advances through exercises to a workout-complete state, and finishes", async () => {
     const view = await render(<ActiveSessionScreen />);
 
     expect(await view.findByText("Bodyweight Squat")).toBeOnTheScreen();
@@ -119,12 +119,38 @@ describe("ActiveSession screen", () => {
       weight: "25"
     });
 
-    expect(await view.findByText("Rest running")).toBeOnTheScreen();
-    await fireEvent.press(view.getByText("Skip rest"));
-    expect(view.getByText("Rest ready")).toBeOnTheScreen();
+    // Log Set is blocked while rest is running.
+    expect(await view.findByText("Resting…")).toBeOnTheScreen();
+    expect(view.getByLabelText("Submit set log").props.accessibilityState?.disabled).toBe(true);
+    expect(view.getByLabelText("Skip rest").props.accessibilityState?.disabled).toBe(false);
 
-    await fireEvent.press(view.getByText("Next"));
-    expect(view.getByText("Incline Push-Up")).toBeOnTheScreen();
+    // Skipping rest after the exercise's only target set auto-advances to the next exercise.
+    await fireEvent.press(view.getByLabelText("Skip rest"));
+    expect(await view.findByText("Incline Push-Up")).toBeOnTheScreen();
+    expect(view.getByLabelText("Submit set log").props.accessibilityState?.disabled).toBe(false);
+
+    mockLogSet.mockResolvedValueOnce({
+      id: "set-2",
+      sessionId: "session-1",
+      workoutExerciseId: "we-2",
+      setNumber: 1,
+      reps: 8,
+      weight: 20,
+      completedAt: "2026-07-06T10:10:00.000Z",
+      exerciseNameSnapshot: "Incline Push-Up",
+      targetRepsSnapshot: "6-10",
+      targetRestSecondsSnapshot: 60
+    });
+
+    await fireEvent.changeText(view.getByLabelText("Reps"), "8");
+    await fireEvent.changeText(view.getByLabelText("Weight"), "20");
+    await fireEvent.press(view.getByLabelText("Submit set log"));
+
+    await waitFor(() => expect(mockLogSet).toHaveBeenCalledTimes(2));
+
+    // Skipping rest after the last set of the last exercise resolves to the workout-complete state.
+    await fireEvent.press(view.getByLabelText("Skip rest"));
+    expect(await view.findByText("Workout complete")).toBeOnTheScreen();
 
     await fireEvent.press(view.getByText("Finish session"));
     await waitFor(() => expect(mockCompleteSession).toHaveBeenCalledWith("session-1"));

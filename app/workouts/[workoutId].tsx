@@ -1,4 +1,4 @@
-import { Link, useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
@@ -93,7 +93,7 @@ export default function WorkoutDetailScreen() {
 
     try {
       const copy = await workoutBuilderService.copyTemplateWorkout(workout.id);
-      router.replace(`/workouts/${copy.id}`);
+      router.replace(`/workouts/new?workoutId=${copy.id}`);
     } catch (error) {
       console.error("Sample workout could not be copied.", error);
       setError("Sample workout could not be copied.");
@@ -144,7 +144,13 @@ export default function WorkoutDetailScreen() {
         <>
           <View style={styles.actions}>
             {workout.exercises.length > 0 ? (
-              <Link href={`/workouts/${workout.id}/session`}>Start session</Link>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => router.push(`/workouts/${workout.id}/session`)}
+                style={styles.primaryButton}
+              >
+                <Text style={styles.primaryButtonText}>Start session</Text>
+              </Pressable>
             ) : (
               <EmptyState
                 title="No exercises selected"
@@ -156,15 +162,21 @@ export default function WorkoutDetailScreen() {
                 accessibilityRole="button"
                 disabled={isBusy}
                 onPress={copyTemplate}
-                style={[styles.primaryButton, isBusy ? styles.disabled : null]}
+                style={[styles.secondaryButton, isBusy ? styles.disabled : null]}
               >
-                <Text style={styles.primaryButtonText}>
+                <Text style={styles.secondaryButtonText}>
                   {isBusy ? "Copying workout" : "Copy to edit"}
                 </Text>
               </Pressable>
             ) : (
               <>
-                <Link href={`/workouts/new?workoutId=${workout.id}`}>Edit workout</Link>
+                <Pressable
+                  accessibilityRole="button"
+                  onPress={() => router.push(`/workouts/new?workoutId=${workout.id}`)}
+                  style={styles.secondaryButton}
+                >
+                  <Text style={styles.secondaryButtonText}>Edit workout</Text>
+                </Pressable>
                 <Pressable
                   accessibilityRole="button"
                   disabled={isBusy}
@@ -256,16 +268,31 @@ const styles = StyleSheet.create({
     lineHeight: 20
   },
   primaryButton: {
-    minHeight: 48,
+    minHeight: 56,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: theme.radius.sm,
+    borderRadius: theme.radius.md,
     backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.md
+    paddingHorizontal: theme.spacing.lg
   },
   primaryButtonText: {
     color: theme.colors.primaryText,
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: "800"
+  },
+  secondaryButton: {
+    minHeight: 56,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: theme.radius.md,
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+    backgroundColor: theme.colors.surface,
+    paddingHorizontal: theme.spacing.lg
+  },
+  secondaryButtonText: {
+    color: theme.colors.primary,
+    fontSize: 18,
     fontWeight: "800"
   },
   dangerButton: {

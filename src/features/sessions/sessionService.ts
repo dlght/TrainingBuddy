@@ -15,6 +15,9 @@ export type SessionExerciseRepository = ReturnType<typeof createExerciseReposito
 export type ActiveSessionExercise = WorkoutExercise & {
   exerciseName: string;
   loggedSetCount: number;
+  isBodyweight: boolean;
+  defaultReps: number | null;
+  defaultWeight: number | null;
 };
 
 export type ActiveSessionDetails = {
@@ -64,7 +67,10 @@ async function hydrateSessionDetails(
     exercises: workout.exercises.map((workoutExercise) => ({
       ...workoutExercise,
       exerciseName: exercisesById.get(workoutExercise.exerciseId)?.name ?? workoutExercise.exerciseId,
-      loggedSetCount: countLoggedSets(setLogs, workoutExercise.id)
+      loggedSetCount: countLoggedSets(setLogs, workoutExercise.id),
+      isBodyweight: exercisesById.get(workoutExercise.exerciseId)?.equipment === "bodyweight",
+      defaultReps: workoutExercise.targetRepRangeLow ?? null,
+      defaultWeight: workoutExercise.targetWeight ?? null
     }))
   };
 }
@@ -134,12 +140,6 @@ export function createSessionService(
 
       if (session.status !== "active") {
         throw new Error("Only active sessions can be completed.");
-      }
-
-      const setLogs = await sessionRepository.listSetLogs(session.id);
-
-      if (setLogs.length === 0) {
-        throw new Error("Log at least one set before finishing.");
       }
 
       await sessionRepository.updateSessionStatus(session.id, "completed");

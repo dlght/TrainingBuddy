@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { theme } from "@/components/theme";
@@ -12,6 +13,7 @@ export type WorkoutExerciseEditorValue = {
   targetSets: string;
   targetReps: string;
   targetRestSeconds: string;
+  targetWeight: string;
   supersetGroupId: string | null;
 };
 
@@ -21,6 +23,7 @@ type WorkoutExerciseEditorProps = {
   errors?: string[];
   canMoveUp?: boolean;
   canMoveDown?: boolean;
+  isBodyweight?: boolean;
   onChange: (exercise: WorkoutExerciseEditorValue) => void;
   onRemove: () => void;
   onMoveUp: () => void;
@@ -33,16 +36,14 @@ export function WorkoutExerciseEditor({
   errors = [],
   canMoveUp = true,
   canMoveDown = true,
+  isBodyweight = false,
   onChange,
   onRemove,
   onMoveUp,
   onMoveDown
 }: WorkoutExerciseEditorProps) {
   const setField = (
-    field: keyof Pick<
-      WorkoutExerciseEditorValue,
-      "targetSets" | "targetReps" | "targetRestSeconds" | "supersetGroupId"
-    >,
+    field: keyof Pick<WorkoutExerciseEditorValue, "targetSets" | "targetReps" | "targetWeight" | "supersetGroupId">,
     value: string | null
   ) => {
     onChange({
@@ -58,8 +59,8 @@ export function WorkoutExerciseEditor({
           <Text style={styles.order}>{index + 1}</Text>
           <ExerciseLabel name={exercise.exerciseName} style={styles.name} />
         </View>
-        <Pressable accessibilityRole="button" onPress={onRemove} style={styles.textButton}>
-          <Text style={styles.removeText}>Remove</Text>
+        <Pressable accessibilityRole="button" accessibilityLabel="Remove" onPress={onRemove} style={styles.iconButton}>
+          <Ionicons color="#b42318" name="trash-outline" size={20} />
         </Pressable>
       </View>
 
@@ -76,30 +77,35 @@ export function WorkoutExerciseEditor({
           value={exercise.targetReps}
           onChangeText={(value) => setField("targetReps", value)}
         />
-        <TargetInput
-          accessibilityLabel={`Rest seconds for ${exercise.exerciseName}`}
-          label="Rest"
-          value={exercise.targetRestSeconds}
-          onChangeText={(value) => setField("targetRestSeconds", value)}
-        />
+        {isBodyweight ? null : (
+          <TargetInput
+            accessibilityLabel={`Default weight for ${exercise.exerciseName}`}
+            keyboardType="decimal-pad"
+            label="Weight"
+            value={exercise.targetWeight}
+            onChangeText={(value) => setField("targetWeight", value)}
+          />
+        )}
       </View>
 
       <View style={styles.controls}>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Move up"
           disabled={!canMoveUp}
           onPress={onMoveUp}
-          style={[styles.smallButton, !canMoveUp ? styles.disabled : null]}
+          style={[styles.iconButton, !canMoveUp ? styles.disabled : null]}
         >
-          <Text style={styles.smallButtonText}>Up</Text>
+          <Ionicons color={theme.colors.text} name="arrow-up" size={20} />
         </Pressable>
         <Pressable
           accessibilityRole="button"
+          accessibilityLabel="Move down"
           disabled={!canMoveDown}
           onPress={onMoveDown}
-          style={[styles.smallButton, !canMoveDown ? styles.disabled : null]}
+          style={[styles.iconButton, !canMoveDown ? styles.disabled : null]}
         >
-          <Text style={styles.smallButtonText}>Down</Text>
+          <Ionicons color={theme.colors.text} name="arrow-down" size={20} />
         </Pressable>
         <SupersetGroupControl
           isInSuperset={exercise.supersetGroupId === "superset-a"}
@@ -122,19 +128,21 @@ function TargetInput({
   accessibilityLabel,
   label,
   value,
-  onChangeText
+  onChangeText,
+  keyboardType = "number-pad"
 }: {
   accessibilityLabel: string;
   label: string;
   value: string;
   onChangeText: (value: string) => void;
+  keyboardType?: "number-pad" | "decimal-pad";
 }) {
   return (
     <View style={styles.field}>
       <Text style={styles.label}>{label}</Text>
       <TextInput
         accessibilityLabel={accessibilityLabel}
-        keyboardType="number-pad"
+        keyboardType={keyboardType}
         onChangeText={onChangeText}
         style={styles.input}
         value={value}
@@ -181,15 +189,6 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "800"
   },
-  textButton: {
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: theme.spacing.xs
-  },
-  removeText: {
-    color: "#b42318",
-    fontSize: 14,
-    fontWeight: "800"
-  },
   fields: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -219,7 +218,8 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: theme.spacing.sm
   },
-  smallButton: {
+  iconButton: {
+    minWidth: 40,
     minHeight: 40,
     alignItems: "center",
     justifyContent: "center",
@@ -227,12 +227,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
-    paddingHorizontal: theme.spacing.md
-  },
-  smallButtonText: {
-    color: theme.colors.text,
-    fontSize: 14,
-    fontWeight: "800"
+    paddingHorizontal: theme.spacing.sm
   },
   disabled: {
     opacity: 0.45

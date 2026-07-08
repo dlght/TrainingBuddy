@@ -26,7 +26,7 @@ export function createProgressRepository(database: DatabaseAdapter) {
       return database.getAllAsync<ExerciseVolumePoint>(
         `SELECT ws.id as sessionId,
                 max(sl.completed_at) as completedAt,
-                sum(sl.reps * sl.weight) as volume
+                coalesce(sum(sl.reps * sl.weight), 0) as volume
            FROM set_logs sl
            JOIN workout_sessions ws ON ws.id = sl.session_id
            JOIN workout_exercises we ON we.id = sl.workout_exercise_id
@@ -48,6 +48,7 @@ export function createProgressRepository(database: DatabaseAdapter) {
            JOIN workout_exercises we ON we.id = sl.workout_exercise_id
           WHERE we.exercise_id = ?
             AND ws.status = 'completed'
+            AND sl.weight IS NOT NULL
           ORDER BY sl.completed_at ASC`,
         [exerciseId]
       );

@@ -17,6 +17,7 @@ export type WorkoutExercise = {
   targetRepRangeLow: number;
   targetRepRangeHigh: number;
   targetRestSeconds: number;
+  targetWeight: number | null;
   supersetGroupId: string | null;
 };
 

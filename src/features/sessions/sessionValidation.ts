@@ -1,7 +1,7 @@
 export type SetLogFormValues = {
   setNumber?: string | number;
   reps: string | number;
-  weight: string | number;
+  weight?: string | number;
 };
 
 export type RestFormValue = string | number;
@@ -16,7 +16,7 @@ export type SetLogValidationResult = {
   value?: {
     setNumber?: number;
     reps: number;
-    weight: number;
+    weight: number | null;
   };
 };
 
@@ -44,11 +44,15 @@ function integerFrom(value: string | number): number | null {
   return parsed;
 }
 
-export function validateSetLogValues(values: SetLogFormValues): SetLogValidationResult {
+export function validateSetLogValues(
+  values: SetLogFormValues,
+  isBodyweight = false
+): SetLogValidationResult {
   const errors: SetLogValidationErrors = {};
   const setNumber = values.setNumber === undefined ? undefined : integerFrom(values.setNumber);
   const reps = integerFrom(values.reps);
-  const weight = numberFrom(values.weight);
+  const weightProvided = values.weight !== undefined && String(values.weight).trim() !== "";
+  const weight = weightProvided ? numberFrom(values.weight as string | number) : null;
 
   if (values.setNumber !== undefined && (setNumber === undefined || setNumber === null || setNumber <= 0)) {
     errors.setNumber = "Set number must be a whole number above 0.";
@@ -58,10 +62,11 @@ export function validateSetLogValues(values: SetLogFormValues): SetLogValidation
     errors.reps = "Reps must be a whole number at least 0.";
   }
 
-  if (weight === null || weight < 0) {
+  if (!isBodyweight && !weightProvided) {
+    errors.weight = "Weight is required for this exercise.";
+  } else if (weightProvided && (weight === null || weight < 0)) {
     errors.weight = "Weight must be 0 or more.";
   }
-
 
   if (Object.keys(errors).length > 0) {
     return {
@@ -76,7 +81,7 @@ export function validateSetLogValues(values: SetLogFormValues): SetLogValidation
     value: {
       setNumber: setNumber ?? undefined,
       reps: reps as number,
-      weight: weight as number
+      weight
     }
   };
 }

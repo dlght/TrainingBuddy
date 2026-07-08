@@ -53,17 +53,20 @@ export function createSetLogService(
       const nextSetNumber =
         input.setNumber ??
         setLogs.filter((setLog) => setLog.workoutExerciseId === workoutExercise.id).length + 1;
-      const validation = validateSetLogValues({
-        setNumber: nextSetNumber,
-        reps: input.reps,
-        weight: input.weight
-      });
+      const exercise = await exerciseRepository.getExerciseById(workoutExercise.exerciseId);
+      const isBodyweight = exercise?.equipment === "bodyweight";
+      const validation = validateSetLogValues(
+        {
+          setNumber: nextSetNumber,
+          reps: input.reps,
+          weight: input.weight
+        },
+        isBodyweight
+      );
 
       if (!validation.isValid || !validation.value) {
         throw new Error(formatSetLogValidationErrors(validation.errors));
       }
-
-      const exercise = await exerciseRepository.getExerciseById(workoutExercise.exerciseId);
 
       return sessionRepository.addSetLog({
         sessionId: session.id,

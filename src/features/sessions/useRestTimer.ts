@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AppState } from "react-native";
 
 export const DEFAULT_REST_SECONDS = 90;
@@ -27,10 +27,15 @@ export function formatRestTime(seconds: number): string {
   return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
-export function useRestTimer(initialDurationSeconds = DEFAULT_REST_SECONDS) {
+export function useRestTimer(initialDurationSeconds = DEFAULT_REST_SECONDS, onComplete?: () => void) {
   const [durationSeconds, setDurationSeconds] = useState(initialDurationSeconds);
   const [startedAtMs, setStartedAtMs] = useState<number | null>(null);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   const remainingSeconds = useMemo(() => {
     if (startedAtMs === null) {
@@ -51,6 +56,8 @@ export function useRestTimer(initialDurationSeconds = DEFAULT_REST_SECONDS) {
       return undefined;
     }
 
+    let intervalId: ReturnType<typeof setInterval>;
+
     const updateNow = () => {
       const currentNowMs = Date.now();
 
@@ -63,11 +70,16 @@ export function useRestTimer(initialDurationSeconds = DEFAULT_REST_SECONDS) {
           nowMs: currentNowMs
         }) === 0
       ) {
+        // Stop the interval immediately rather than waiting for the setStartedAtMs(null)
+        // update to re-run this effect, so onComplete cannot fire more than once for a
+        // single countdown even if a tick lands before React re-renders.
+        clearInterval(intervalId);
         setStartedAtMs(null);
+        onCompleteRef.current?.();
       }
     };
 
-    const intervalId = setInterval(updateNow, 1000);
+    intervalId = setInterval(updateNow, 1000);
     const subscription = AppState.addEventListener("change", () => setNowMs(Date.now()));
 
     return () => {
@@ -86,9 +98,15 @@ export function useRestTimer(initialDurationSeconds = DEFAULT_REST_SECONDS) {
   );
 
   const skip = useCallback(() => {
+    const wasRunning = startedAtMs !== null;
+
     setStartedAtMs(null);
     setNowMs(Date.now());
-  }, []);
+
+    if (wasRunning) {
+      onCompleteRef.current?.();
+    }
+  }, [startedAtMs]);
 
   const updateDuration = useCallback((nextDurationSeconds: number) => {
     setDurationSeconds(nextDurationSeconds);

@@ -60,6 +60,7 @@ CREATE TABLE IF NOT EXISTS workout_exercises (
   target_rep_range_low INTEGER NOT NULL CHECK (target_rep_range_low > 0),
   target_rep_range_high INTEGER NOT NULL CHECK (target_rep_range_high >= target_rep_range_low),
   target_rest_seconds INTEGER NOT NULL CHECK (target_rest_seconds >= 0),
+  target_weight REAL CHECK (target_weight IS NULL OR target_weight >= 0),
   superset_group_id TEXT,
   UNIQUE (workout_id, order_index)
 );
@@ -86,7 +87,7 @@ CREATE TABLE IF NOT EXISTS set_logs (
   workout_exercise_id TEXT NOT NULL REFERENCES workout_exercises(id) ON DELETE RESTRICT,
   set_number INTEGER NOT NULL CHECK (set_number > 0),
   reps INTEGER NOT NULL CHECK (reps >= 0),
-  weight REAL NOT NULL CHECK (weight >= 0),
+  weight REAL CHECK (weight IS NULL OR weight >= 0),
   completed_at TEXT NOT NULL,
   exercise_name_snapshot TEXT NOT NULL CHECK (length(trim(exercise_name_snapshot)) > 0),
   target_reps_snapshot TEXT,
@@ -132,6 +133,78 @@ export async function ensureFavouriteColumn(database: DatabaseAdapter): Promise<
   }
 
   await database.execAsync("CREATE INDEX IF NOT EXISTS workouts_favourite_idx ON workouts(is_favourite);");
+}
+
+/**
+ * Relaxes set_logs.weight from NOT NULL to nullable so bodyweight exercises can
+ * be logged with reps only. SQLite has no ALTER COLUMN to drop a NOT NULL
+ * constraint, so this rebuilds the table: create a replacement with the desired
+ * schema, copy existing rows across, drop the old table, rename the new one back,
+ * and recreate its indexes — all in one transaction. Checking the live schema via
+ * PRAGMA table_info (rather than trusting migration-ID bookkeeping) keeps this
+ * self-healing and idempotent, consistent with ensureFavouriteColumn above.
+ */
+export async function ensureNullableSetLogsWeight(database: DatabaseAdapter): Promise<void> {
+  const columns = await database.getAllAsync<{ name: string; notnull: number }>(
+    "PRAGMA table_info(set_logs);"
+  );
+  const weightColumn = columns.find((column) => column.name === "weight");
+
+  if (!weightColumn || weightColumn.notnull === 0) {
+    return;
+  }
+
+  await runInTransaction(database, async () => {
+    await database.execAsync(`
+      CREATE TABLE set_logs_new (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL REFERENCES workout_sessions(id) ON DELETE CASCADE,
+        workout_exercise_id TEXT NOT NULL REFERENCES workout_exercises(id) ON DELETE RESTRICT,
+        set_number INTEGER NOT NULL CHECK (set_number > 0),
+        reps INTEGER NOT NULL CHECK (reps >= 0),
+        weight REAL CHECK (weight IS NULL OR weight >= 0),
+        completed_at TEXT NOT NULL,
+        exercise_name_snapshot TEXT NOT NULL CHECK (length(trim(exercise_name_snapshot)) > 0),
+        target_reps_snapshot TEXT,
+        target_rest_seconds_snapshot INTEGER CHECK (target_rest_seconds_snapshot IS NULL OR target_rest_seconds_snapshot >= 0)
+      );
+    `);
+    await database.execAsync(`
+      INSERT INTO set_logs_new (
+        id, session_id, workout_exercise_id, set_number, reps, weight,
+        completed_at, exercise_name_snapshot, target_reps_snapshot, target_rest_seconds_snapshot
+      )
+      SELECT
+        id, session_id, workout_exercise_id, set_number, reps, weight,
+        completed_at, exercise_name_snapshot, target_reps_snapshot, target_rest_seconds_snapshot
+      FROM set_logs;
+    `);
+    await database.execAsync("DROP TABLE set_logs;");
+    await database.execAsync("ALTER TABLE set_logs_new RENAME TO set_logs;");
+    await database.execAsync("CREATE INDEX IF NOT EXISTS set_logs_session_idx ON set_logs(session_id);");
+    await database.execAsync(
+      "CREATE INDEX IF NOT EXISTS set_logs_workout_exercise_idx ON set_logs(workout_exercise_id);"
+    );
+  });
+}
+
+/**
+ * Ensures workout_exercises.target_weight exists, regardless of what
+ * schema_migrations claims. This is a plain nullable-column addition (no
+ * existing NOT NULL constraint to relax), so unlike ensureNullableSetLogsWeight
+ * it's a simple ALTER TABLE ADD COLUMN rather than a table rebuild. Checking the
+ * live schema via PRAGMA table_info keeps it self-healing and idempotent,
+ * consistent with ensureFavouriteColumn/ensureNullableSetLogsWeight above.
+ */
+export async function ensureWorkoutExerciseTargetWeight(database: DatabaseAdapter): Promise<void> {
+  const columns = await database.getAllAsync<{ name: string }>("PRAGMA table_info(workout_exercises);");
+  const hasColumn = columns.some((column) => column.name === "target_weight");
+
+  if (!hasColumn) {
+    await database.execAsync(
+      "ALTER TABLE workout_exercises ADD COLUMN target_weight REAL CHECK (target_weight IS NULL OR target_weight >= 0);"
+    );
+  }
 }
 
 export async function runInTransaction<T>(
@@ -185,4 +258,6 @@ export async function runMigrations(
   }
 
   await ensureFavouriteColumn(database);
+  await ensureNullableSetLogsWeight(database);
+  await ensureWorkoutExerciseTargetWeight(database);
 }

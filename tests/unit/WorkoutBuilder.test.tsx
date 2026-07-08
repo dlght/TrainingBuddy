@@ -100,6 +100,12 @@ describe("WorkoutBuilder screen", () => {
     await fireEvent.press(view.getByLabelText("Add exercise"));
     await fireEvent.press(view.getByLabelText("Add exercise"));
     await fireEvent.press(view.getByLabelText("Add exercise"));
+
+    // Weight is not collected for bodyweight exercises, but is for equipment-based ones.
+    expect(view.queryByLabelText("Default weight for Bodyweight Squat")).toBeNull();
+    expect(view.getByLabelText("Default weight for Incline Push-Up")).toBeOnTheScreen();
+    expect(view.getByLabelText("Default weight for One-Arm Dumbbell Row")).toBeOnTheScreen();
+
     await fireEvent.press(view.getByText("Save workout"));
 
     await waitFor(() => expect(mockCreateCustomWorkout).toHaveBeenCalledTimes(1));
@@ -112,6 +118,7 @@ describe("WorkoutBuilder screen", () => {
           targetRepRangeLow: "10",
           targetRepRangeHigh: "10",
           targetRestSeconds: "60",
+          targetWeight: null,
           supersetGroupId: null
         },
         {
@@ -120,6 +127,7 @@ describe("WorkoutBuilder screen", () => {
           targetRepRangeLow: "10",
           targetRepRangeHigh: "10",
           targetRestSeconds: "60",
+          targetWeight: "",
           supersetGroupId: null
         },
         {
@@ -128,6 +136,7 @@ describe("WorkoutBuilder screen", () => {
           targetRepRangeLow: "10",
           targetRepRangeHigh: "10",
           targetRestSeconds: "60",
+          targetWeight: "",
           supersetGroupId: null
         }
       ]

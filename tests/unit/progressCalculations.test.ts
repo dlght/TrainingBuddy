@@ -83,4 +83,62 @@ describe("progress calculations", () => {
     expect(points).not.toHaveProperty("highestWeight");
     expect(points).not.toHaveProperty("oneRepMax");
   });
+
+  it("handles bodyweight sets with no weight value", () => {
+    const bodyweightSets: ExerciseHistorySet[] = [
+      {
+        sessionId: "session-3",
+        workoutNameSnapshot: "Full Body C",
+        completedAt: "2026-07-09T10:00:00.000Z",
+        setNumber: 1,
+        reps: 15,
+        weight: null,
+        exerciseNameSnapshot: "Bodyweight Squat"
+      },
+      {
+        sessionId: "session-3",
+        workoutNameSnapshot: "Full Body C",
+        completedAt: "2026-07-09T10:05:00.000Z",
+        setNumber: 2,
+        reps: 10,
+        weight: 20,
+        exerciseNameSnapshot: "Bodyweight Squat"
+      }
+    ];
+
+    const sessions = groupHistorySetsBySession(bodyweightSets);
+    expect(sessions).toHaveLength(1);
+    expect(sessions[0].setCount).toBe(2);
+    expect(sessions[0].totalVolume).toBe(200);
+
+    const volumePoints = calculateVolumeBySession(bodyweightSets);
+    expect(volumePoints).toEqual([
+      { sessionId: "session-3", completedAt: "2026-07-09T10:05:00.000Z", volume: 200 }
+    ]);
+
+    const weightPoints = calculateWeightTrendPoints(bodyweightSets);
+    expect(weightPoints).toEqual([
+      { sessionId: "session-3", completedAt: "2026-07-09T10:05:00.000Z", weight: 20 }
+    ]);
+  });
+
+  it("reports zero volume for an all-bodyweight session rather than throwing", () => {
+    const allBodyweight: ExerciseHistorySet[] = [
+      {
+        sessionId: "session-4",
+        workoutNameSnapshot: "Full Body D",
+        completedAt: "2026-07-10T10:00:00.000Z",
+        setNumber: 1,
+        reps: 20,
+        weight: null,
+        exerciseNameSnapshot: "Bodyweight Squat"
+      }
+    ];
+
+    expect(() => groupHistorySetsBySession(allBodyweight)).not.toThrow();
+    expect(calculateVolumeBySession(allBodyweight)).toEqual([
+      { sessionId: "session-4", completedAt: "2026-07-10T10:00:00.000Z", volume: 0 }
+    ]);
+    expect(calculateWeightTrendPoints(allBodyweight)).toEqual([]);
+  });
 });

@@ -7,7 +7,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
 import { CurrentExercisePanel } from "@/features/sessions/CurrentExercisePanel";
-import { RestTimerControls } from "@/features/sessions/RestTimerControls";
+import { isSessionFullyLogged, resolveNextSessionStep } from "@/features/sessions/sessionFlow";
 import { SetLogEditor, type SetLogEditorValues } from "@/features/sessions/SetLogEditor";
 import {
   sessionService,
@@ -41,14 +41,36 @@ export default function ActiveSessionScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingSet, setIsSavingSet] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
+  const [isWorkoutComplete, setIsWorkoutComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currentExerciseIndex = useActiveSessionStore((state) => state.currentExerciseIndex);
   const restDurationSeconds = useActiveSessionStore((state) => state.restDurationSeconds);
   const resetForSession = useActiveSessionStore((state) => state.resetForSession);
   const setCurrentExerciseIndex = useActiveSessionStore((state) => state.setCurrentExerciseIndex);
-  const setRestDurationSeconds = useActiveSessionStore((state) => state.setRestDurationSeconds);
   const resetSessionStore = useActiveSessionStore((state) => state.reset);
-  const restTimer = useRestTimer(restDurationSeconds);
+
+  const handleRestComplete = () => {
+    if (!sessionDetails) {
+      return;
+    }
+
+    const step = resolveNextSessionStep(
+      sessionDetails.exercises.map((exercise) => ({
+        id: exercise.id,
+        targetSets: exercise.targetSets,
+        loggedSetCount: exercise.loggedSetCount
+      })),
+      currentExerciseIndex
+    );
+
+    if (step.type === "next-exercise") {
+      setCurrentExerciseIndex(step.index);
+    } else if (step.type === "workout-complete") {
+      setIsWorkoutComplete(true);
+    }
+  };
+
+  const restTimer = useRestTimer(restDurationSeconds, handleRestComplete);
 
   useEffect(() => {
     let mounted = true;
@@ -79,6 +101,15 @@ export default function ActiveSessionScreen() {
 
         setSessionDetails(details);
         resetForSession(details.session.id, firstIncompleteExerciseIndex(details));
+        setIsWorkoutComplete(
+          isSessionFullyLogged(
+            details.exercises.map((exercise) => ({
+              id: exercise.id,
+              targetSets: exercise.targetSets,
+              loggedSetCount: exercise.loggedSetCount
+            }))
+          )
+        );
 
         if (details.workout.id !== id) {
           setError("Another workout is already active. Resume or discard it before starting this one.");
@@ -204,7 +235,24 @@ export default function ActiveSessionScreen() {
 
       {error ? <ErrorState message={error} title="Active session" /> : null}
 
-      {sessionDetails && currentExercise ? (
+      {sessionDetails && isWorkoutComplete ? (
+        <>
+          <View style={styles.completeCard}>
+            <Text style={styles.completeTitle}>Workout complete</Text>
+            <Text style={styles.completeBody}>
+              Every set is logged. Tap Finish session to save it, or Discard to throw it away.
+            </Text>
+          </View>
+
+          <FinishDiscardActions
+            isFinishing={isFinishing}
+            onDiscard={discardSession}
+            onFinish={finishSession}
+          />
+        </>
+      ) : null}
+
+      {sessionDetails && !isWorkoutComplete && currentExercise ? (
         <>
           <CurrentExercisePanel
             exercise={currentExercise}
@@ -217,47 +265,63 @@ export default function ActiveSessionScreen() {
             onPrevious={() => setCurrentExerciseIndex(Math.max(0, currentExerciseIndex - 1))}
           />
 
-          <SetLogEditor isSaving={isSavingSet} onSubmit={logSet} />
-
-          <RestTimerControls
-            durationSeconds={restDurationSeconds}
-            isRunning={restTimer.isRunning}
-            remainingSeconds={restTimer.remainingSeconds}
-            onDurationChange={(seconds) => {
-              setRestDurationSeconds(seconds);
-              restTimer.setDurationSeconds(seconds);
-            }}
-            onSkip={restTimer.skip}
-            onStart={() => restTimer.start(restDurationSeconds)}
+          <SetLogEditor
+            key={currentExercise.id}
+            isSaving={isSavingSet}
+            isBodyweight={currentExercise.isBodyweight}
+            isResting={restTimer.isRunning}
+            restRemainingSeconds={restTimer.remainingSeconds}
+            defaultReps={currentExercise.defaultReps}
+            defaultWeight={currentExercise.defaultWeight}
+            onSkipRest={restTimer.skip}
+            onSubmit={logSet}
           />
 
-          <View style={styles.actions}>
-            <Pressable
-              accessibilityRole="button"
-              disabled={isFinishing}
-              onPress={finishSession}
-              style={[styles.primaryButton, isFinishing ? styles.disabled : null]}
-            >
-              {isFinishing ? (
-                <ActivityIndicator color={theme.colors.primaryText} />
-              ) : (
-                <Text style={styles.primaryButtonText}>Finish session</Text>
-              )}
-            </Pressable>
-            <Pressable accessibilityRole="button" onPress={discardSession} style={styles.dangerButton}>
-              <Text style={styles.dangerButtonText}>Discard session</Text>
-            </Pressable>
-          </View>
+          <FinishDiscardActions
+            isFinishing={isFinishing}
+            onDiscard={discardSession}
+            onFinish={finishSession}
+          />
         </>
       ) : null}
 
-      {!isLoading && sessionDetails && !currentExercise ? (
+      {!isLoading && sessionDetails && !isWorkoutComplete && !currentExercise ? (
         <EmptyState
           title="No exercises in this session"
           message="Add exercises to the workout before starting a session."
         />
       ) : null}
     </ScrollView>
+  );
+}
+
+function FinishDiscardActions({
+  isFinishing,
+  onFinish,
+  onDiscard
+}: {
+  isFinishing: boolean;
+  onFinish: () => void;
+  onDiscard: () => void;
+}) {
+  return (
+    <View style={styles.actions}>
+      <Pressable
+        accessibilityRole="button"
+        disabled={isFinishing}
+        onPress={onFinish}
+        style={[styles.primaryButton, isFinishing ? styles.disabled : null]}
+      >
+        {isFinishing ? (
+          <ActivityIndicator color={theme.colors.primaryText} />
+        ) : (
+          <Text style={styles.primaryButtonText}>Finish session</Text>
+        )}
+      </Pressable>
+      <Pressable accessibilityRole="button" onPress={onDiscard} style={styles.dangerButton}>
+        <Text style={styles.dangerButtonText}>Discard session</Text>
+      </Pressable>
+    </View>
   );
 }
 
@@ -289,6 +353,26 @@ const styles = StyleSheet.create({
   },
   actions: {
     gap: theme.spacing.sm
+  },
+  completeCard: {
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    gap: theme.spacing.sm,
+    padding: theme.spacing.lg,
+    alignItems: "center"
+  },
+  completeTitle: {
+    color: theme.colors.text,
+    fontSize: 22,
+    fontWeight: "800"
+  },
+  completeBody: {
+    color: theme.colors.muted,
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: "center"
   },
   primaryButton: {
     minHeight: 50,
