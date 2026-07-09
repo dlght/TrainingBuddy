@@ -8,6 +8,8 @@ import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
 import { formatShortDate } from "@/features/progress/progressCalculations";
 import { historyService, type CompletedSessionSummary } from "@/features/progress/historyService";
+import { formatDuration, getElapsedSeconds } from "@/features/sessions/duration";
+import { getEffortRatingMeta } from "@/features/sessions/effortRating";
 
 export default function HistoryScreen() {
   const router = useRouter();
@@ -74,8 +76,12 @@ export default function HistoryScreen() {
         >
           <Text style={styles.sessionName}>{session.workoutName}</Text>
           <Text style={styles.sessionMeta}>
-            {formatShortDate(session.endedAt)} - {session.totalSets} {session.totalSets === 1 ? "set" : "sets"}
+            {formatShortDate(session.endedAt)} - {formatDuration(getElapsedSeconds(session.startedAt, session.endedAt))} -{" "}
+            {session.totalSets} {session.totalSets === 1 ? "set" : "sets"}
             {session.totalVolume > 0 ? ` - ${session.totalVolume} volume` : ""}
+          </Text>
+          <Text style={styles.sessionRating}>
+            {getEffortRatingMeta(session.rating).emoji} {getEffortRatingMeta(session.rating).label}
           </Text>
         </Pressable>
       ))}
@@ -125,6 +131,11 @@ const styles = StyleSheet.create({
   sessionMeta: {
     color: theme.colors.muted,
     fontSize: 14,
+    fontWeight: "600"
+  },
+  sessionRating: {
+    color: theme.colors.muted,
+    fontSize: 13,
     fontWeight: "600"
   }
 });

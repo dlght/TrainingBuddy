@@ -17,6 +17,7 @@ export type CompletedSessionSummary = {
   endedAt: string;
   totalSets: number;
   totalVolume: number;
+  rating: number | null;
 };
 
 type WorkoutSessionRow = WorkoutSession;
@@ -31,7 +32,8 @@ export function createSessionRepository(database: DatabaseAdapter) {
                 started_at as startedAt,
                 ended_at as endedAt,
                 status,
-                workout_name_snapshot as workoutNameSnapshot
+                workout_name_snapshot as workoutNameSnapshot,
+                rating
            FROM workout_sessions
           WHERE id = ?
           LIMIT 1`,
@@ -47,7 +49,8 @@ export function createSessionRepository(database: DatabaseAdapter) {
                 started_at as startedAt,
                 ended_at as endedAt,
                 status,
-                workout_name_snapshot as workoutNameSnapshot
+                workout_name_snapshot as workoutNameSnapshot,
+                rating
            FROM workout_sessions
           WHERE user_id = ?
             AND status = 'active'
@@ -71,7 +74,8 @@ export function createSessionRepository(database: DatabaseAdapter) {
         startedAt: input.startedAt ?? new Date().toISOString(),
         endedAt: null,
         status: "active",
-        workoutNameSnapshot: input.workoutNameSnapshot
+        workoutNameSnapshot: input.workoutNameSnapshot,
+        rating: null
       };
 
       await database.runAsync(
@@ -82,9 +86,10 @@ export function createSessionRepository(database: DatabaseAdapter) {
             started_at,
             ended_at,
             status,
-            workout_name_snapshot
+            workout_name_snapshot,
+            rating
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           session.id,
           session.workoutId,
@@ -92,7 +97,8 @@ export function createSessionRepository(database: DatabaseAdapter) {
           session.startedAt,
           session.endedAt,
           session.status,
-          session.workoutNameSnapshot
+          session.workoutNameSnapshot,
+          session.rating
         ]
       );
 
@@ -107,6 +113,19 @@ export function createSessionRepository(database: DatabaseAdapter) {
       await database.runAsync(
         "UPDATE workout_sessions SET status = ?, ended_at = ? WHERE id = ? AND status = 'active'",
         [status, endedAt, sessionId]
+      );
+    },
+
+    async completeSession(
+      sessionId: string,
+      options: { rating?: number | null; endedAt?: string } = {}
+    ): Promise<void> {
+      const endedAt = options.endedAt ?? new Date().toISOString();
+      const rating = options.rating ?? null;
+
+      await database.runAsync(
+        "UPDATE workout_sessions SET status = 'completed', ended_at = ?, rating = ? WHERE id = ? AND status = 'active'",
+        [endedAt, rating, sessionId]
       );
     },
 
@@ -204,6 +223,7 @@ export function createSessionRepository(database: DatabaseAdapter) {
                 ws.workout_name_snapshot as workoutName,
                 ws.started_at as startedAt,
                 ws.ended_at as endedAt,
+                ws.rating as rating,
                 COUNT(sl.id) as totalSets,
                 COALESCE(SUM(sl.reps * COALESCE(sl.weight, 0)), 0) as totalVolume
            FROM workout_sessions ws

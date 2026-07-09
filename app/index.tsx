@@ -9,6 +9,7 @@ import { theme } from "@/components/theme";
 import { profileService } from "@/features/profile/profileService";
 import { dashboardService } from "@/features/progress/dashboardService";
 import type { WeeklyDashboardStats } from "@/features/progress/dashboardStats";
+import { streakService } from "@/features/progress/streakService";
 import { sessionService, type ActiveSessionDetails } from "@/features/sessions/sessionService";
 import { workoutRecommendationService } from "@/features/workouts/workoutRecommendationService";
 import type { UserProfile } from "@/models/user";
@@ -22,6 +23,7 @@ export default function HomeScreen() {
   const [startupError, setStartupError] = useState<string | null>(null);
   const [suggestedWorkouts, setSuggestedWorkouts] = useState<{ id: string; name: string; isFavourite: boolean }[] | null>(null);
   const [dashboardStats, setDashboardStats] = useState<WeeklyDashboardStats | null>(null);
+  const [streakDays, setStreakDays] = useState<number | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -108,6 +110,14 @@ export default function HomeScreen() {
           console.error("Dashboard stats could not be loaded.", error);
           if (mounted) setDashboardStats({ days: [], consistencyPercent: 0 });
         }
+
+        try {
+          const streak = await streakService.getCurrentStreak();
+          if (mounted) setStreakDays(streak);
+        } catch (error) {
+          console.error("Streak could not be loaded.", error);
+          if (mounted) setStreakDays(0);
+        }
       }
 
       void loadDashboardStats();
@@ -191,11 +201,19 @@ export default function HomeScreen() {
             </View>
           )}
           
-            <View style={styles.statCard}>
-              <Text style={styles.statValue}>
-                {dashboardStats === null ? "…" : `${dashboardStats.consistencyPercent}%`}
-              </Text>
-              <Text style={styles.statLabel}>consistency</Text>
+            <View style={styles.statsRow}>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>
+                  {dashboardStats === null ? "…" : `${dashboardStats.consistencyPercent}%`}
+                </Text>
+                <Text style={styles.statLabel}>consistency</Text>
+              </View>
+              <View style={styles.statCard}>
+                <Text style={styles.statValue}>
+                  {streakDays === null ? "…" : streakDays > 0 ? `🔥 ${streakDays}` : "0"}
+                </Text>
+                <Text style={styles.statLabel}>day streak</Text>
+              </View>
             </View>
           </View>
         </View>

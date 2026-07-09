@@ -271,11 +271,28 @@ export class TestDatabase implements DatabaseAdapter {
         startedAt: String(row[3]),
         endedAt: row[4] === null ? null : String(row[4]),
         status: row[5] as WorkoutSession["status"],
-        workoutNameSnapshot: String(row[6])
+        workoutNameSnapshot: String(row[6]),
+        rating: row[7] === null || row[7] === undefined ? null : Number(row[7])
       };
 
       this.workoutSessions.set(session.id, session);
       return { changes: 1 };
+    }
+
+    if (normalized.startsWith("update workout_sessions set status = 'completed'")) {
+      const session = this.workoutSessions.get(String(row[2]));
+
+      if (session?.status === "active") {
+        this.workoutSessions.set(session.id, {
+          ...session,
+          status: "completed",
+          endedAt: String(row[0]),
+          rating: row[1] === null ? null : Number(row[1])
+        });
+        return { changes: 1 };
+      }
+
+      return { changes: 0 };
     }
 
     if (normalized.startsWith("update workout_sessions set status")) {

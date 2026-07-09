@@ -98,7 +98,12 @@ describe("ActiveSession screen", () => {
       targetRestSecondsSnapshot: 60
     });
     mockCompleteSession.mockResolvedValue({
-      session: { id: "session-1", status: "completed" },
+      session: {
+        id: "session-1",
+        status: "completed",
+        startedAt: "2026-07-06T10:00:00.000Z",
+        endedAt: "2026-07-06T10:45:00.000Z"
+      },
       workout: { id: "workout-1" },
       exercises: [],
       setLogs: []
@@ -156,8 +161,57 @@ describe("ActiveSession screen", () => {
     await fireEvent.press(view.getByLabelText("Skip rest"));
     expect(await view.findByText("Workout complete")).toBeOnTheScreen();
 
+    await fireEvent.press(view.getByLabelText("Rate effort 4: Almost couldn't do it"));
     await fireEvent.press(view.getByText("Finish session"));
-    await waitFor(() => expect(mockCompleteSession).toHaveBeenCalledWith("session-1"));
+    await waitFor(() =>
+      expect(mockCompleteSession).toHaveBeenCalledWith("session-1", { rating: 4 })
+    );
+
+    expect(await view.findByText("Session complete")).toBeOnTheScreen();
+    expect(mockReplace).not.toHaveBeenCalled();
+
+    await fireEvent.press(view.getByText("Done"));
     expect(mockReplace).toHaveBeenCalledWith("/workouts/workout-1");
+  });
+
+  it("finishes a session with no rating selected, saving null", async () => {
+    const view = await render(<ActiveSessionScreen />);
+
+    expect(await view.findByText("Bodyweight Squat")).toBeOnTheScreen();
+
+    await fireEvent.changeText(view.getByLabelText("Reps"), "10");
+    await fireEvent.changeText(view.getByLabelText("Weight"), "25");
+    await fireEvent.press(view.getByLabelText("Submit set log"));
+    await waitFor(() => expect(mockLogSet).toHaveBeenCalledTimes(1));
+
+    await fireEvent.press(view.getByLabelText("Skip rest"));
+    expect(await view.findByText("Incline Push-Up")).toBeOnTheScreen();
+
+    mockLogSet.mockResolvedValueOnce({
+      id: "set-2",
+      sessionId: "session-1",
+      workoutExerciseId: "we-2",
+      setNumber: 1,
+      reps: 8,
+      weight: 20,
+      completedAt: "2026-07-06T10:10:00.000Z",
+      exerciseNameSnapshot: "Incline Push-Up",
+      targetRepsSnapshot: "6-10",
+      targetRestSecondsSnapshot: 60
+    });
+
+    await fireEvent.changeText(view.getByLabelText("Reps"), "8");
+    await fireEvent.changeText(view.getByLabelText("Weight"), "20");
+    await fireEvent.press(view.getByLabelText("Submit set log"));
+    await waitFor(() => expect(mockLogSet).toHaveBeenCalledTimes(2));
+
+    await fireEvent.press(view.getByLabelText("Skip rest"));
+    expect(await view.findByText("Workout complete")).toBeOnTheScreen();
+
+    await fireEvent.press(view.getByText("Finish session"));
+    await waitFor(() =>
+      expect(mockCompleteSession).toHaveBeenCalledWith("session-1", { rating: null })
+    );
+    expect(await view.findByText("— Not rated")).toBeOnTheScreen();
   });
 });

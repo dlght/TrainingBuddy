@@ -66,8 +66,8 @@ describe("historyService.listCompletedSessions", () => {
     await seedFixture(adapter);
 
     await adapter.runAsync(
-      `INSERT INTO workout_sessions (id, workout_id, user_id, started_at, ended_at, status, workout_name_snapshot)
-       VALUES ('s1', 'w1', 'u1', '2026-01-01T00:00:00.000Z', '2026-01-01T01:00:00.000Z', 'completed', 'Leg Day')`
+      `INSERT INTO workout_sessions (id, workout_id, user_id, started_at, ended_at, status, workout_name_snapshot, rating)
+       VALUES ('s1', 'w1', 'u1', '2026-01-01T00:00:00.000Z', '2026-01-01T01:00:00.000Z', 'completed', 'Leg Day', 4)`
     );
     await adapter.runAsync(
       `INSERT INTO set_logs (id, session_id, workout_exercise_id, set_number, reps, weight, completed_at, exercise_name_snapshot)
@@ -100,11 +100,12 @@ describe("historyService.listCompletedSessions", () => {
       workoutId: "w1",
       workoutName: "Leg Day",
       totalSets: 2,
-      totalVolume: 800
+      totalVolume: 800,
+      rating: 4
     });
 
     const second = sessions.find((session) => session.id === "s2");
-    expect(second).toMatchObject({ totalSets: 0, totalVolume: 0 });
+    expect(second).toMatchObject({ totalSets: 0, totalVolume: 0, rating: null });
   });
 
   it("returns an empty list when there are no completed sessions", async () => {

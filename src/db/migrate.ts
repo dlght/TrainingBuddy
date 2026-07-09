@@ -87,7 +87,8 @@ CREATE TABLE IF NOT EXISTS workout_sessions (
   started_at TEXT NOT NULL,
   ended_at TEXT,
   status TEXT NOT NULL CHECK (status IN ('active', 'completed', 'discarded')),
-  workout_name_snapshot TEXT NOT NULL CHECK (length(trim(workout_name_snapshot)) > 0)
+  workout_name_snapshot TEXT NOT NULL CHECK (length(trim(workout_name_snapshot)) > 0),
+  rating INTEGER
 );
 
 CREATE INDEX IF NOT EXISTS workout_sessions_user_status_idx ON workout_sessions(user_id, status);
@@ -274,6 +275,24 @@ export async function ensureWorkoutExerciseSetPlans(database: DatabaseAdapter): 
   }
 }
 
+/**
+ * Ensures workout_sessions.rating exists, regardless of what schema_migrations
+ * claims. Plain nullable-column addition (no existing NOT NULL constraint to
+ * relax, no CHECK constraint — the 1-5 range is validated in application code,
+ * not the DB, so a device with an out-of-range value already written some other
+ * way still self-heals cleanly). Checking the live schema via PRAGMA table_info
+ * keeps this self-healing and idempotent, consistent with the other ensure*
+ * functions above.
+ */
+export async function ensureWorkoutSessionRating(database: DatabaseAdapter): Promise<void> {
+  const columns = await database.getAllAsync<{ name: string }>("PRAGMA table_info(workout_sessions);");
+  const hasColumn = columns.some((column) => column.name === "rating");
+
+  if (!hasColumn) {
+    await database.execAsync("ALTER TABLE workout_sessions ADD COLUMN rating INTEGER;");
+  }
+}
+
 export async function runInTransaction<T>(
   database: DatabaseAdapter,
   task: () => Promise<T>
@@ -328,4 +347,5 @@ export async function runMigrations(
   await ensureNullableSetLogsWeight(database);
   await ensureWorkoutExerciseTargetWeight(database);
   await ensureWorkoutExerciseSetPlans(database);
+  await ensureWorkoutSessionRating(database);
 }

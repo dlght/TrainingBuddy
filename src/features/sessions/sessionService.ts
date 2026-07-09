@@ -30,7 +30,7 @@ export type SessionService = {
   getActiveSession(userId?: string): Promise<ActiveSessionDetails | null>;
   resumeActiveSession(userId?: string): Promise<ActiveSessionDetails | null>;
   startWorkoutSession(workoutId: string, userId?: string): Promise<ActiveSessionDetails>;
-  completeSession(sessionId: string): Promise<ActiveSessionDetails>;
+  completeSession(sessionId: string, options?: { rating?: number | null }): Promise<ActiveSessionDetails>;
   discardSession(sessionId: string): Promise<void>;
 };
 
@@ -127,7 +127,7 @@ export function createSessionService(
       return hydrateSessionDetails(session, workoutRepository, exerciseRepository, sessionRepository);
     },
 
-    async completeSession(sessionId) {
+    async completeSession(sessionId, options = {}) {
       const session = await sessionRepository.getSessionById(sessionId);
 
       if (!session) {
@@ -138,7 +138,7 @@ export function createSessionService(
         throw new Error("Only active sessions can be completed.");
       }
 
-      await sessionRepository.updateSessionStatus(session.id, "completed");
+      await sessionRepository.completeSession(session.id, { rating: options.rating ?? null });
 
       return this.getSessionDetails(session.id);
     },
@@ -191,8 +191,8 @@ export const sessionService: SessionService = {
     return (await createRuntimeSessionService()).startWorkoutSession(workoutId, userId);
   },
 
-  async completeSession(sessionId) {
-    return (await createRuntimeSessionService()).completeSession(sessionId);
+  async completeSession(sessionId, options) {
+    return (await createRuntimeSessionService()).completeSession(sessionId, options);
   },
 
   async discardSession(sessionId) {

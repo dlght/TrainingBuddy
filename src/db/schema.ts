@@ -99,7 +99,8 @@ export const workoutSessions = sqliteTable("workout_sessions", {
   startedAt: text("started_at").notNull(),
   endedAt: text("ended_at"),
   status: text("status").notNull(),
-  workoutNameSnapshot: text("workout_name_snapshot").notNull()
+  workoutNameSnapshot: text("workout_name_snapshot").notNull(),
+  rating: integer("rating")
 }, (table) => [
   index("workout_sessions_user_status_idx").on(table.userId, table.status),
   index("workout_sessions_workout_idx").on(table.workoutId)

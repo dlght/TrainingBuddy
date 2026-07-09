@@ -8,6 +8,7 @@ export type WorkoutSession = {
   endedAt: string | null;
   status: WorkoutSessionStatus;
   workoutNameSnapshot: string;
+  rating: number | null;
 };
 
 export type SetLog = {

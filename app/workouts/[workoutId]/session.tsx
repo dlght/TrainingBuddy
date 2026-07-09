@@ -7,6 +7,10 @@ import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
 import { CurrentExercisePanel } from "@/features/sessions/CurrentExercisePanel";
+import { streakService } from "@/features/progress/streakService";
+import { formatDuration, getElapsedSeconds } from "@/features/sessions/duration";
+import { EffortRatingPicker } from "@/features/sessions/EffortRatingPicker";
+import { getEffortRatingMeta, type EffortRatingValue } from "@/features/sessions/effortRating";
 import { getPlannedSetValues, isSessionFullyLogged, resolveNextSessionStep } from "@/features/sessions/sessionFlow";
 import { SetLogEditor, type SetLogEditorValues } from "@/features/sessions/SetLogEditor";
 import {
@@ -14,8 +18,15 @@ import {
   type ActiveSessionDetails
 } from "@/features/sessions/sessionService";
 import { setLogService } from "@/features/sessions/setLogService";
+import { useElapsedSeconds } from "@/features/sessions/useElapsedSeconds";
 import { useRestTimer } from "@/features/sessions/useRestTimer";
 import { useActiveSessionStore } from "@/state/activeSessionStore";
+
+type SessionSummary = {
+  durationSeconds: number;
+  streakDays: number | null;
+  rating: EffortRatingValue | null;
+};
 
 function firstParam(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) {
@@ -42,6 +53,8 @@ export default function ActiveSessionScreen() {
   const [isSavingSet, setIsSavingSet] = useState(false);
   const [isFinishing, setIsFinishing] = useState(false);
   const [isWorkoutComplete, setIsWorkoutComplete] = useState(false);
+  const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
+  const [selectedRating, setSelectedRating] = useState<EffortRatingValue | null>(null);
   const [error, setError] = useState<string | null>(null);
   const currentExerciseIndex = useActiveSessionStore((state) => state.currentExerciseIndex);
   const restDurationSeconds = useActiveSessionStore((state) => state.restDurationSeconds);
@@ -149,6 +162,11 @@ export default function ActiveSessionScreen() {
     return getPlannedSetValues(currentExercise.setPlans, currentExercise.loggedSetCount);
   }, [currentExercise]);
 
+  const liveElapsedSeconds = useElapsedSeconds(
+    sessionDetails?.session.startedAt ?? new Date().toISOString(),
+    Boolean(sessionDetails) && isWorkoutComplete && !sessionSummary
+  );
+
   const logSet = async (values: SetLogEditorValues) => {
     if (!sessionDetails || !currentExercise) {
       return;
@@ -201,14 +219,36 @@ export default function ActiveSessionScreen() {
     setError(null);
 
     try {
-      await sessionService.completeSession(sessionDetails.session.id);
-      resetSessionStore();
-      router.replace(`/workouts/${sessionDetails.workout.id}`);
+      const finished = await sessionService.completeSession(sessionDetails.session.id, {
+        rating: selectedRating
+      });
+      const durationSeconds = getElapsedSeconds(
+        finished.session.startedAt,
+        finished.session.endedAt ?? new Date().toISOString()
+      );
+
+      let streakDays: number | null = null;
+
+      try {
+        streakDays = await streakService.getCurrentStreak();
+      } catch (streakError: unknown) {
+        console.error("Streak could not be loaded.", streakError);
+      }
+
+      setSessionSummary({ durationSeconds, streakDays, rating: selectedRating });
     } catch (finishError: unknown) {
       console.error("Session could not be finished.", finishError);
       setError(finishError instanceof Error ? finishError.message : "Session could not be finished.");
     } finally {
       setIsFinishing(false);
+    }
+  };
+
+  const finishSessionSummary = () => {
+    resetSessionStore();
+
+    if (sessionDetails) {
+      router.replace(`/workouts/${sessionDetails.workout.id}`);
     }
   };
 
@@ -243,14 +283,33 @@ export default function ActiveSessionScreen() {
 
       {error ? <ErrorState message={error} title="Active session" /> : null}
 
-      {sessionDetails && isWorkoutComplete ? (
+      {sessionDetails && sessionSummary ? (
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryEyebrow}>Session complete</Text>
+          <Text style={styles.summaryDuration}>{formatDuration(sessionSummary.durationSeconds)}</Text>
+          {sessionSummary.streakDays !== null && sessionSummary.streakDays > 0 ? (
+            <Text style={styles.summaryStreak}>🔥 {sessionSummary.streakDays}-day streak</Text>
+          ) : null}
+          <Text style={styles.summaryRating}>
+            {getEffortRatingMeta(sessionSummary.rating).emoji} {getEffortRatingMeta(sessionSummary.rating).label}
+          </Text>
+          <Pressable accessibilityRole="button" onPress={finishSessionSummary} style={styles.primaryButton}>
+            <Text style={styles.primaryButtonText}>Done</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
+      {sessionDetails && isWorkoutComplete && !sessionSummary ? (
         <>
           <View style={styles.completeCard}>
             <Text style={styles.completeTitle}>Workout complete</Text>
+            <Text style={styles.completeDuration}>{formatDuration(liveElapsedSeconds)}</Text>
             <Text style={styles.completeBody}>
               Every set is logged. Tap Finish session to save it, or Discard to throw it away.
             </Text>
           </View>
+
+          <EffortRatingPicker selectedRating={selectedRating} onSelect={setSelectedRating} />
 
           <FinishDiscardActions
             isFinishing={isFinishing}
@@ -260,7 +319,7 @@ export default function ActiveSessionScreen() {
         </>
       ) : null}
 
-      {sessionDetails && !isWorkoutComplete && currentExercise ? (
+      {sessionDetails && !isWorkoutComplete && !sessionSummary && currentExercise ? (
         <>
           <CurrentExercisePanel
             exercise={currentExercise}
@@ -377,11 +436,48 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "800"
   },
+  completeDuration: {
+    color: theme.colors.text,
+    fontSize: 48,
+    fontWeight: "800",
+    letterSpacing: 0.5
+  },
   completeBody: {
     color: theme.colors.muted,
     fontSize: 15,
     lineHeight: 22,
     textAlign: "center"
+  },
+  summaryCard: {
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    gap: theme.spacing.md,
+    padding: theme.spacing.xl,
+    alignItems: "center"
+  },
+  summaryEyebrow: {
+    color: theme.colors.primary,
+    fontSize: 13,
+    fontWeight: "700",
+    textTransform: "uppercase"
+  },
+  summaryDuration: {
+    color: theme.colors.text,
+    fontSize: 56,
+    fontWeight: "800",
+    letterSpacing: 0.5
+  },
+  summaryStreak: {
+    color: theme.colors.primary,
+    fontSize: 16,
+    fontWeight: "700"
+  },
+  summaryRating: {
+    color: theme.colors.muted,
+    fontSize: 15,
+    fontWeight: "600"
   },
   primaryButton: {
     flex: 1,
