@@ -25,8 +25,10 @@ describe("calculateWeeklyDashboardStats", () => {
 
     expect(today.dateKey).toBe("2026-07-08");
     expect(today.volume).toBe(350);
+    expect(today.setCount).toBe(2);
     expect(yesterday.dateKey).toBe("2026-07-07");
     expect(yesterday.volume).toBe(0);
+    expect(yesterday.setCount).toBe(1);
   });
 
   it("calculates consistency as the share of the window with a completed session", () => {

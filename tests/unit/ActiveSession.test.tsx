@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 
 const mockReplace = jest.fn();
 const mockCompleteSession = jest.fn();
@@ -128,10 +128,10 @@ describe("ActiveSession screen", () => {
       weight: "25"
     });
 
-    // Log Set is blocked while rest is running.
-    expect(await view.findByText("Resting…")).toBeOnTheScreen();
-    expect(view.getByLabelText("Submit set log").props.accessibilityState?.disabled).toBe(true);
-    expect(view.getByLabelText("Skip rest").props.accessibilityState?.disabled).toBe(false);
+    // The Log Set button becomes the Skip Rest button while rest is running.
+    expect(await view.findByLabelText("Skip rest")).toBeOnTheScreen();
+    expect(view.queryByLabelText("Submit set log")).toBeNull();
+    expect(view.getByLabelText("Skip rest").props.accessibilityState?.disabled).toBeFalsy();
 
     // Skipping rest after the exercise's only target set auto-advances to the next exercise.
     await fireEvent.press(view.getByLabelText("Skip rest"));
@@ -162,16 +162,16 @@ describe("ActiveSession screen", () => {
     expect(await view.findByText("Workout complete")).toBeOnTheScreen();
 
     await fireEvent.press(view.getByLabelText("Rate effort 4: Almost couldn't do it"));
-    await fireEvent.press(view.getByText("Finish session"));
+    await fireEvent.press(view.getByText("Finish workout"));
+
+    // Finish is one-tap: it saves and navigates away immediately, no intermediate confirmation screen.
     await waitFor(() =>
-      expect(mockCompleteSession).toHaveBeenCalledWith("session-1", { rating: 4 })
+      expect(mockCompleteSession).toHaveBeenCalledWith("session-1", {
+        rating: 4,
+        endedAt: expect.any(String)
+      })
     );
-
-    expect(await view.findByText("Session complete")).toBeOnTheScreen();
-    expect(mockReplace).not.toHaveBeenCalled();
-
-    await fireEvent.press(view.getByText("Done"));
-    expect(mockReplace).toHaveBeenCalledWith("/workouts/workout-1");
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/workouts/workout-1"));
   });
 
   it("finishes a session with no rating selected, saving null", async () => {
@@ -208,10 +208,84 @@ describe("ActiveSession screen", () => {
     await fireEvent.press(view.getByLabelText("Skip rest"));
     expect(await view.findByText("Workout complete")).toBeOnTheScreen();
 
-    await fireEvent.press(view.getByText("Finish session"));
+    await fireEvent.press(view.getByText("Finish workout"));
     await waitFor(() =>
-      expect(mockCompleteSession).toHaveBeenCalledWith("session-1", { rating: null })
+      expect(mockCompleteSession).toHaveBeenCalledWith("session-1", {
+        rating: null,
+        endedAt: expect.any(String)
+      })
     );
-    expect(await view.findByText("— Not rated")).toBeOnTheScreen();
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/workouts/workout-1"));
+  });
+
+  it("shows a persistent timer at the top that keeps ticking while exercises are in progress", async () => {
+    const view = await render(<ActiveSessionScreen />);
+
+    expect(await view.findByText("Bodyweight Squat")).toBeOnTheScreen();
+    // The timer bar is visible from the very start of the session, not only once complete.
+    expect(view.getByText(/^\d+[hms]/)).toBeOnTheScreen();
+  });
+
+  it("stops the timer the instant the workout reaches the complete state", async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2026-07-06T10:00:05.000Z"));
+
+    try {
+      const view = await render(<ActiveSessionScreen />);
+      expect(await view.findByText("Bodyweight Squat")).toBeOnTheScreen();
+
+      const initialText = view.getByText(/^\d+[hms]/).props.children;
+
+      await act(() => {
+        jest.advanceTimersByTime(3_000);
+      });
+      const tickingText = view.getByText(/^\d+[hms]/).props.children;
+      expect(tickingText).not.toEqual(initialText);
+
+      await fireEvent.changeText(view.getByLabelText("Reps"), "10");
+      await fireEvent.changeText(view.getByLabelText("Weight"), "25");
+      await fireEvent.press(view.getByLabelText("Submit set log"));
+      await waitFor(() => expect(mockLogSet).toHaveBeenCalledTimes(1));
+
+      await fireEvent.press(view.getByLabelText("Skip rest"));
+      expect(await view.findByText("Incline Push-Up")).toBeOnTheScreen();
+
+      mockLogSet.mockResolvedValueOnce({
+        id: "set-2",
+        sessionId: "session-1",
+        workoutExerciseId: "we-2",
+        setNumber: 1,
+        reps: 8,
+        weight: 20,
+        completedAt: "2026-07-06T10:10:00.000Z",
+        exerciseNameSnapshot: "Incline Push-Up",
+        targetRepsSnapshot: "6-10",
+        targetRestSecondsSnapshot: 60
+      });
+
+      await fireEvent.changeText(view.getByLabelText("Reps"), "8");
+      await fireEvent.changeText(view.getByLabelText("Weight"), "20");
+      await fireEvent.press(view.getByLabelText("Submit set log"));
+      await waitFor(() => expect(mockLogSet).toHaveBeenCalledTimes(2));
+
+      await act(() => {
+        jest.advanceTimersByTime(5_000);
+      });
+
+      await fireEvent.press(view.getByLabelText("Skip rest"));
+      expect(await view.findByText("Workout complete")).toBeOnTheScreen();
+
+      const frozenText = view.getByText(/^\d+[hms]/).props.children;
+      expect(frozenText).not.toEqual(tickingText);
+
+      await act(() => {
+        jest.advanceTimersByTime(10_000);
+      });
+
+      // The timer must not resume ticking once the workout is complete.
+      expect(view.getByText(/^\d+[hms]/).props.children).toEqual(frozenText);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

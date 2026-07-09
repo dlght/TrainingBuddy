@@ -118,30 +118,32 @@ export function WorkoutExerciseEditor({
             </Pressable>
           </View>
         ))}
-        <Pressable accessibilityRole="button" accessibilityLabel="Add set" onPress={addSetPlan} style={styles.addSetButton}>
-          <Ionicons color={theme.colors.primary} name="add" size={18} />
-          <Text style={styles.addSetButtonText}>Add set</Text>
-        </Pressable>
       </View>
 
       <View style={styles.controls}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Move up"
-          disabled={!canMoveUp}
-          onPress={onMoveUp}
-          style={[styles.iconButton, !canMoveUp ? styles.disabled : null]}
-        >
-          <Ionicons color={theme.colors.text} name="arrow-up" size={20} />
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Move down"
-          disabled={!canMoveDown}
-          onPress={onMoveDown}
-          style={[styles.iconButton, !canMoveDown ? styles.disabled : null]}
-        >
-          <Ionicons color={theme.colors.text} name="arrow-down" size={20} />
+        <View style={styles.moveButtons}>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Move up"
+            disabled={!canMoveUp}
+            onPress={onMoveUp}
+            style={[styles.iconButton, !canMoveUp ? styles.disabled : null]}
+          >
+            <Ionicons color={theme.colors.text} name="arrow-up" size={20} />
+          </Pressable>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Move down"
+            disabled={!canMoveDown}
+            onPress={onMoveDown}
+            style={[styles.iconButton, !canMoveDown ? styles.disabled : null]}
+          >
+            <Ionicons color={theme.colors.text} name="arrow-down" size={20} />
+          </Pressable>
+        </View>
+        <Pressable accessibilityRole="button" accessibilityLabel="Add set" onPress={addSetPlan} style={styles.addSetButton}>
+          <Ionicons color={theme.colors.primary} name="add" size={18} />
+          <Text style={styles.addSetButtonText}>Add set</Text>
         </Pressable>
       </View>
 
@@ -262,7 +264,6 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.sm,
     borderWidth: 1,
     borderColor: theme.colors.primary,
-    alignSelf: "flex-start",
     paddingHorizontal: theme.spacing.md
   },
   addSetButtonText: {
@@ -273,6 +274,13 @@ const styles = StyleSheet.create({
   controls: {
     flexDirection: "row",
     flexWrap: "wrap",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.sm
+  },
+  moveButtons: {
+    flexDirection: "row",
     gap: theme.spacing.sm
   },
   iconButton: {

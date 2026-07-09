@@ -8,6 +8,7 @@ export type DailyVolumePoint = {
   label: string;
   dateKey: string;
   volume: number;
+  setCount: number;
 };
 
 export type WeeklyDashboardStats = {
@@ -46,12 +47,14 @@ export function calculateWeeklyDashboardStats(
 ): WeeklyDashboardStats {
   const days = lastNDays(referenceDate, dayCount);
   const volumeByDay = new Map<string, number>();
+  const setCountByDay = new Map<string, number>();
 
   for (const setLog of recentSetLogs) {
     const key = setLog.completedAt.slice(0, 10);
     const volume = setLog.weight === null ? 0 : setLog.reps * setLog.weight;
 
     volumeByDay.set(key, (volumeByDay.get(key) ?? 0) + volume);
+    setCountByDay.set(key, (setCountByDay.get(key) ?? 0) + 1);
   }
 
   const dayPoints = days.map((day) => {
@@ -60,7 +63,8 @@ export function calculateWeeklyDashboardStats(
     return {
       label: WEEKDAY_LABELS[day.getDay()],
       dateKey: key,
-      volume: volumeByDay.get(key) ?? 0
+      volume: volumeByDay.get(key) ?? 0,
+      setCount: setCountByDay.get(key) ?? 0
     };
   });
 

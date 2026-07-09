@@ -235,6 +235,32 @@ export function createSessionRepository(database: DatabaseAdapter) {
           LIMIT ?`,
         [userId, limit]
       );
+    },
+
+    async listCompletedSessionsInRange(
+      userId: string,
+      startIso: string,
+      endIsoExclusive: string
+    ): Promise<CompletedSessionSummary[]> {
+      return database.getAllAsync<CompletedSessionSummary>(
+        `SELECT ws.id as id,
+                ws.workout_id as workoutId,
+                ws.workout_name_snapshot as workoutName,
+                ws.started_at as startedAt,
+                ws.ended_at as endedAt,
+                ws.rating as rating,
+                COUNT(sl.id) as totalSets,
+                COALESCE(SUM(sl.reps * COALESCE(sl.weight, 0)), 0) as totalVolume
+           FROM workout_sessions ws
+           LEFT JOIN set_logs sl ON sl.session_id = ws.id
+          WHERE ws.user_id = ?
+            AND ws.status = 'completed'
+            AND ws.ended_at >= ?
+            AND ws.ended_at < ?
+          GROUP BY ws.id
+          ORDER BY ws.ended_at ASC`,
+        [userId, startIso, endIsoExclusive]
+      );
     }
   };
 }

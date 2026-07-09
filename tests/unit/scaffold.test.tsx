@@ -103,7 +103,8 @@ jest.mock("@/features/progress/progressService", () => ({
 
 jest.mock("@/features/progress/historyService", () => ({
   historyService: {
-    listCompletedSessions: jest.fn().mockResolvedValue([])
+    listCompletedSessions: jest.fn().mockResolvedValue([]),
+    listCompletedSessionsInRange: jest.fn().mockResolvedValue([])
   }
 }));
 

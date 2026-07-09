@@ -30,7 +30,10 @@ export type SessionService = {
   getActiveSession(userId?: string): Promise<ActiveSessionDetails | null>;
   resumeActiveSession(userId?: string): Promise<ActiveSessionDetails | null>;
   startWorkoutSession(workoutId: string, userId?: string): Promise<ActiveSessionDetails>;
-  completeSession(sessionId: string, options?: { rating?: number | null }): Promise<ActiveSessionDetails>;
+  completeSession(
+    sessionId: string,
+    options?: { rating?: number | null; endedAt?: string }
+  ): Promise<ActiveSessionDetails>;
   discardSession(sessionId: string): Promise<void>;
 };
 
@@ -138,7 +141,10 @@ export function createSessionService(
         throw new Error("Only active sessions can be completed.");
       }
 
-      await sessionRepository.completeSession(session.id, { rating: options.rating ?? null });
+      await sessionRepository.completeSession(session.id, {
+        rating: options.rating ?? null,
+        endedAt: options.endedAt
+      });
 
       return this.getSessionDetails(session.id);
     },

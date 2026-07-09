@@ -121,3 +121,82 @@ describe("historyService.listCompletedSessions", () => {
     expect(sessions).toEqual([]);
   });
 });
+
+describe("historyService.listCompletedSessionsInRange", () => {
+  async function seedRangeFixture(adapter: DatabaseAdapter): Promise<void> {
+    await seedFixture(adapter);
+
+    await adapter.runAsync(
+      `INSERT INTO workout_sessions (id, workout_id, user_id, started_at, ended_at, status, workout_name_snapshot, rating)
+       VALUES ('s1', 'w1', 'u1', '2026-01-01T00:00:00.000Z', '2026-01-01T01:00:00.000Z', 'completed', 'Leg Day', 4)`
+    );
+    await adapter.runAsync(
+      `INSERT INTO workout_sessions (id, workout_id, user_id, started_at, ended_at, status, workout_name_snapshot)
+       VALUES ('s2', 'w1', 'u1', '2026-01-02T00:00:00.000Z', '2026-01-02T01:00:00.000Z', 'completed', 'Leg Day')`
+    );
+    // Outside the [Jan 1, Jan 2) range under test below.
+    await adapter.runAsync(
+      `INSERT INTO workout_sessions (id, workout_id, user_id, started_at, ended_at, status, workout_name_snapshot)
+       VALUES ('s5', 'w1', 'u1', '2026-02-15T00:00:00.000Z', '2026-02-15T01:00:00.000Z', 'completed', 'Leg Day')`
+    );
+    // Active and discarded sessions must never appear regardless of range.
+    await adapter.runAsync(
+      `INSERT INTO workout_sessions (id, workout_id, user_id, started_at, ended_at, status, workout_name_snapshot)
+       VALUES ('s3', 'w1', 'u1', '2026-01-01T12:00:00.000Z', NULL, 'active', 'Leg Day')`
+    );
+    await adapter.runAsync(
+      `INSERT INTO workout_sessions (id, workout_id, user_id, started_at, ended_at, status, workout_name_snapshot)
+       VALUES ('s4', 'w1', 'u1', '2026-01-01T13:00:00.000Z', '2026-01-01T13:05:00.000Z', 'discarded', 'Leg Day')`
+    );
+  }
+
+  it("returns only completed sessions within the given [start, end) range", async () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec("PRAGMA foreign_keys = ON;");
+    const adapter = makeRealAdapter(db);
+    await runMigrations(adapter, migrations);
+    await seedRangeFixture(adapter);
+
+    const service = createHistoryServiceForDatabase(adapter);
+    const sessions = await service.listCompletedSessionsInRange(
+      "2026-01-01T00:00:00.000Z",
+      "2026-01-02T00:00:00.000Z",
+      "u1"
+    );
+
+    expect(sessions.map((session) => session.id)).toEqual(["s1"]);
+    expect(sessions[0]).toMatchObject({ rating: 4 });
+  });
+
+  it("excludes sessions ending exactly at the range's end boundary", async () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec("PRAGMA foreign_keys = ON;");
+    const adapter = makeRealAdapter(db);
+    await runMigrations(adapter, migrations);
+    await seedRangeFixture(adapter);
+
+    const sessions = await createHistoryServiceForDatabase(adapter).listCompletedSessionsInRange(
+      "2026-01-01T02:00:00.000Z",
+      "2026-01-02T01:00:00.000Z",
+      "u1"
+    );
+
+    expect(sessions).toEqual([]);
+  });
+
+  it("returns an empty list for a month range with no sessions", async () => {
+    const db = new DatabaseSync(":memory:");
+    db.exec("PRAGMA foreign_keys = ON;");
+    const adapter = makeRealAdapter(db);
+    await runMigrations(adapter, migrations);
+    await seedRangeFixture(adapter);
+
+    const sessions = await createHistoryServiceForDatabase(adapter).listCompletedSessionsInRange(
+      "2026-03-01T00:00:00.000Z",
+      "2026-04-01T00:00:00.000Z",
+      "u1"
+    );
+
+    expect(sessions).toEqual([]);
+  });
+});

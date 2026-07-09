@@ -1,14 +1,27 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 
 const mockReplace = jest.fn();
+const mockPush = jest.fn();
 const mockCreateCustomWorkout = jest.fn();
 
-jest.mock("expo-router", () => ({
-  __esModule: true,
-  useRouter: () => ({ replace: mockReplace }),
-  useLocalSearchParams: () => ({})
-}));
+jest.mock("expo-router", () => {
+  const React = require("react");
+
+  return {
+    __esModule: true,
+    useRouter: () => ({ replace: mockReplace, push: mockPush }),
+    useLocalSearchParams: () => ({}),
+    // No dependency array: re-runs after every render, standing in for a real
+    // focus event firing each time this screen is navigated back to (e.g.
+    // after picking an exercise on the add-exercise screen).
+    useFocusEffect: (effect: () => void | (() => void)) => {
+      React.useEffect(() => {
+        effect();
+      });
+    }
+  };
+});
 
 jest.mock("@/features/exercises/exerciseLibraryService", () => ({
   exerciseLibraryService: {
@@ -74,11 +87,21 @@ jest.mock("@/features/workouts/workoutBuilderService", () => ({
   }
 }));
 
+import { useExercisePickerStore } from "@/state/exercisePickerStore";
+
 const NewWorkoutScreen = require("../../app/workouts/new").default;
+
+/** Simulates picking an exercise on the add-exercise screen and navigating back to it. */
+async function pickExercise(exerciseId: string) {
+  await act(async () => {
+    useExercisePickerStore.getState().pick(exerciseId);
+  });
+}
 
 describe("WorkoutBuilder screen", () => {
   beforeEach(() => {
     mockReplace.mockClear();
+    mockPush.mockClear();
     mockCreateCustomWorkout.mockReset();
     mockCreateCustomWorkout.mockResolvedValue({
       id: "workout-created",
@@ -89,17 +112,39 @@ describe("WorkoutBuilder screen", () => {
       sourceTemplateId: null,
       exercises: []
     });
+    useExercisePickerStore.getState().reset();
   });
 
-  it("creates a three-exercise custom workout", async () => {
+  it("opens the exercise picker with the currently selected exercises excluded", async () => {
     const view = await render(<NewWorkoutScreen />);
 
-    expect(await view.findByText("Bodyweight Squat")).toBeOnTheScreen();
+    await fireEvent.press(await view.findByLabelText("Add exercises"));
+
+    expect(mockPush).toHaveBeenCalledWith("/workouts/add-exercise");
+    expect(useExercisePickerStore.getState().excludedExerciseIds).toEqual([]);
+  });
+
+  it("creates a three-exercise custom workout via the exercise picker", async () => {
+    const view = await render(<NewWorkoutScreen />);
+    await view.findByLabelText("Add exercises");
 
     await fireEvent.changeText(view.getByLabelText("Workout name"), "Starter Strength");
-    await fireEvent.press(view.getByLabelText("Add exercise"));
-    await fireEvent.press(view.getByLabelText("Add exercise"));
-    await fireEvent.press(view.getByLabelText("Add exercise"));
+
+    await fireEvent.press(view.getByLabelText("Add exercises"));
+    await pickExercise("bodyweight-squat");
+    await view.rerender(<NewWorkoutScreen />);
+    await view.findByText("Bodyweight Squat");
+
+    await fireEvent.press(view.getByLabelText("Add exercises"));
+    expect(useExercisePickerStore.getState().excludedExerciseIds).toEqual(["bodyweight-squat"]);
+    await pickExercise("incline-push-up");
+    await view.rerender(<NewWorkoutScreen />);
+    await view.findByText("Incline Push-Up");
+
+    await fireEvent.press(view.getByLabelText("Add exercises"));
+    await pickExercise("one-arm-dumbbell-row");
+    await view.rerender(<NewWorkoutScreen />);
+    await view.findByText("One-Arm Dumbbell Row");
 
     // Weight is not collected for bodyweight exercises, but is for equipment-based ones.
     expect(view.queryByLabelText("Weight for Bodyweight Squat set 1")).toBeNull();

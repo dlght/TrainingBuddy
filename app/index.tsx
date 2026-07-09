@@ -24,6 +24,7 @@ export default function HomeScreen() {
   const [suggestedWorkouts, setSuggestedWorkouts] = useState<{ id: string; name: string; isFavourite: boolean }[] | null>(null);
   const [dashboardStats, setDashboardStats] = useState<WeeklyDashboardStats | null>(null);
   const [streakDays, setStreakDays] = useState<number | null>(null);
+  const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -200,20 +201,20 @@ export default function HomeScreen() {
               ))}
             </View>
           )}
-          
-            <View style={styles.statsRow}>
-              <View style={styles.statCard}>
-                <Text style={styles.statValue}>
-                  {dashboardStats === null ? "…" : `${dashboardStats.consistencyPercent}%`}
-                </Text>
-                <Text style={styles.statLabel}>consistency</Text>
-              </View>
-              <View style={styles.statCard}>
-                <Text style={styles.statValue}>
-                  {streakDays === null ? "…" : streakDays > 0 ? `🔥 ${streakDays}` : "0"}
-                </Text>
-                <Text style={styles.statLabel}>day streak</Text>
-              </View>
+          </View>
+
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>
+                {dashboardStats === null ? "…" : `${dashboardStats.consistencyPercent}%`}
+              </Text>
+              <Text style={styles.statLabel}>consistency</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statValue}>
+                {streakDays === null ? "…" : streakDays > 0 ? `🔥 ${streakDays}` : "0"}
+              </Text>
+              <Text style={styles.statLabel}>day streak</Text>
             </View>
           </View>
         </View>
@@ -246,15 +247,22 @@ export default function HomeScreen() {
                   const maxVolume = Math.max(1, ...dashboardStats.days.map((day) => day.volume));
 
                   return dashboardStats.days.map((day) => (
-                    <View key={day.dateKey} style={styles.chartColumn}>
+                    <Pressable
+                      key={day.dateKey}
+                      accessibilityRole="button"
+                      accessibilityLabel={`View details for ${day.label}`}
+                      onPress={() => setSelectedDayKey(day.dateKey)}
+                      style={styles.chartColumn}
+                    >
                       <View
                         style={[
                           styles.chartBar,
+                          selectedDayKey === day.dateKey ? styles.chartBarSelected : null,
                           { height: day.volume === 0 ? 4 : Math.max(8, (day.volume / maxVolume) * 120) }
                         ]}
                       />
                       <Text style={styles.chartLabel}>{day.label}</Text>
-                    </View>
+                    </Pressable>
                   ));
                 })()}
               </View>
@@ -263,6 +271,19 @@ export default function HomeScreen() {
                   ? "No workouts logged yet this week."
                   : "Your recent weekly workout volume"}
               </Text>
+              {(() => {
+                const selectedDay = dashboardStats.days.find((day) => day.dateKey === selectedDayKey);
+
+                if (!selectedDay) {
+                  return null;
+                }
+
+                return (
+                  <Text style={styles.chartDetail}>
+                    {selectedDay.setCount} {selectedDay.setCount === 1 ? "set" : "sets"} · {selectedDay.volume} volume
+                  </Text>
+                );
+              })()}
             </>
           )}
         </View>
@@ -461,6 +482,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     minHeight: 20
   },
+  chartBarSelected: {
+    backgroundColor: "#4338ca"
+  },
   chartLabel: {
     color: theme.colors.muted,
     fontSize: 12
@@ -469,6 +493,12 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.sm,
     color: theme.colors.muted,
     fontSize: 13
+  },
+  chartDetail: {
+    marginTop: theme.spacing.xs,
+    color: theme.colors.text,
+    fontSize: 14,
+    fontWeight: "700"
   },
   favoriteDot: {
     width: 10,

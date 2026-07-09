@@ -83,3 +83,17 @@ export function formatShortDate(isoDate: string): string {
     day: "numeric"
   });
 }
+
+export function formatShortDateWithYear(isoDate: string): string {
+  const date = new Date(isoDate);
+
+  if (Number.isNaN(date.getTime())) {
+    return isoDate;
+  }
+
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
+}

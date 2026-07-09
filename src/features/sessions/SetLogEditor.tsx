@@ -77,9 +77,21 @@ export function SetLogEditor({
     });
   };
 
+  const handlePrimaryPress = () => {
+    if (isResting) {
+      onSkipRest?.();
+      return;
+    }
+
+    submit();
+  };
+
   return (
     <View style={styles.card}>
-      <Text style={styles.sectionTitle}>Log set</Text>
+      <View style={styles.header}>
+        <Text style={styles.sectionTitle}>Log set</Text>
+        <Text style={styles.restText}>Rest {formatRestTime(restRemainingSeconds)}</Text>
+      </View>
       <View style={styles.fields}>
         <Field
           accessibilityLabel="Reps"
@@ -98,30 +110,18 @@ export function SetLogEditor({
           />
         )}
       </View>
-      <View style={styles.restRow}>
-        <Text style={styles.restText}>Rest {formatRestTime(restRemainingSeconds)}</Text>
-        <Pressable
-          accessibilityLabel="Skip rest"
-          accessibilityRole="button"
-          disabled={!isResting}
-          onPress={onSkipRest}
-          style={[styles.skipButton, !isResting ? styles.skipButtonDisabled : null]}
-        >
-          <Text style={[styles.skipButtonText, !isResting ? styles.skipButtonTextDisabled : null]}>Skip rest</Text>
-        </Pressable>
-      </View>
 
       <Pressable
-        accessibilityLabel="Submit set log"
+        accessibilityLabel={isResting ? "Skip rest" : "Submit set log"}
         accessibilityRole="button"
-        disabled={isSaving || isResting}
-        onPress={submit}
-        style={[styles.primaryButton, isSaving || isResting ? styles.disabled : null]}
+        disabled={isSaving}
+        onPress={handlePrimaryPress}
+        style={[styles.primaryButton, isResting ? styles.restingButton : null, isSaving ? styles.disabled : null]}
       >
         {isSaving ? (
           <ActivityIndicator color={theme.colors.primaryText} />
         ) : (
-          <Text style={styles.primaryButtonText}>{isResting ? "Resting…" : "Log set"}</Text>
+          <Text style={styles.primaryButtonText}>{isResting ? "Skip rest" : "Log set"}</Text>
         )}
       </Pressable>
     </View>
@@ -165,9 +165,15 @@ const styles = StyleSheet.create({
     gap: theme.spacing.md,
     padding: theme.spacing.md
   },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: theme.spacing.sm
+  },
   sectionTitle: {
     color: theme.colors.text,
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: "800"
   },
   fields: {
@@ -203,37 +209,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700"
   },
-  restRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: theme.spacing.sm
-  },
   restText: {
-    color: theme.colors.text,
-    fontSize: 16,
+    color: theme.colors.primary,
+    fontSize: 24,
     fontWeight: "800"
-  },
-  skipButton: {
-    minHeight: 36,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: theme.radius.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-    paddingHorizontal: theme.spacing.md
-  },
-  skipButtonDisabled: {
-    opacity: 0.4
-  },
-  skipButtonText: {
-    color: theme.colors.text,
-    fontSize: 14,
-    fontWeight: "800"
-  },
-  skipButtonTextDisabled: {
-    color: theme.colors.muted
   },
   primaryButton: {
     minHeight: 48,
@@ -242,6 +221,9 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.sm,
     backgroundColor: theme.colors.primary,
     paddingHorizontal: theme.spacing.md
+  },
+  restingButton: {
+    backgroundColor: "#c26a00"
   },
   primaryButtonText: {
     color: theme.colors.primaryText,

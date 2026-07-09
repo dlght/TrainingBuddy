@@ -1,21 +1,10 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import {
-  ActivityIndicator,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  View
-} from "react-native";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
-import { AlternativesModal } from "@/components/AlternativesModal";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
-import { SwipeCard } from "@/components/SwipeCard";
 import { theme } from "@/components/theme";
 import { exerciseLibraryService } from "@/features/exercises/exerciseLibraryService";
 import {
@@ -25,18 +14,13 @@ import {
 } from "@/features/workouts/WorkoutExerciseEditor";
 import { workoutBuilderService } from "@/features/workouts/workoutBuilderService";
 import {
-  filterExercisesByProgramType,
-  getAlternativeExercises,
-  getCurrentExercise
-} from "@/features/workouts/swipeDeckService";
-import {
   formatWorkoutValidationErrors,
   validateWorkoutDraft,
   type WorkoutValidationErrors
 } from "@/features/workouts/workoutValidation";
 import type { Exercise } from "@/models/exercise";
 import type { WorkoutWithExercises } from "@/models/workout";
-import { useSwipeDeckStore } from "@/state/swipeDeckStore";
+import { useExercisePickerStore } from "@/state/exercisePickerStore";
 
 function firstParam(value: string | string[] | undefined): string | null {
   if (Array.isArray(value)) {
@@ -95,26 +79,9 @@ export default function NewWorkoutScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [programType, setProgramType] = useState<string | null>(null);
-  const [exerciseSearchText, setExerciseSearchText] = useState("");
 
-  const {
-    availableExercises,
-    addedExerciseIds,
-    currentIndex,
-    showAll,
-    alternativesOpen,
-    alternativesExercise,
-    setAvailableExercises,
-    addExercise,
-    removeExercise,
-    nextCard,
-    previousCard,
-    setProgramTypeFilter,
-    setShowAll,
-    openAlternatives,
-    closeAlternatives
-  } = useSwipeDeckStore();
+  const openExercisePicker = useExercisePickerStore((state) => state.open);
+  const consumePickedExercise = useExercisePickerStore((state) => state.consumePicked);
 
   useEffect(() => {
     let mounted = true;
@@ -131,7 +98,6 @@ export default function NewWorkoutScreen() {
         const exercisesById = new Map(libraryData.exercises.map((exercise) => [exercise.id, exercise]));
 
         setExercises(libraryData.exercises);
-        setAvailableExercises(libraryData.exercises);
 
         if (workout) {
           if (workout.isTemplate) {
@@ -159,15 +125,6 @@ export default function NewWorkoutScreen() {
     return () => {
       mounted = false;
     };
-  }, [editWorkoutId, setAvailableExercises]);
-
-  // Reset swipe deck state when component unmounts or workout changes
-  useEffect(() => {
-    return () => {
-      // Reset the swipe deck store when leaving the screen
-      const { reset } = useSwipeDeckStore.getState();
-      reset();
-    };
   }, [editWorkoutId]);
 
   const selectedExerciseIds = useMemo(
@@ -180,26 +137,25 @@ export default function NewWorkoutScreen() {
     [exercises]
   );
 
-  const addableExercises = useMemo(() => {
-    const query = exerciseSearchText.trim().toLowerCase();
+  useFocusEffect(
+    useCallback(() => {
+      const pickedExerciseId = consumePickedExercise();
 
-    return exercises
-      .filter((exercise) => !selectedExerciseIds.includes(exercise.id))
-      .filter((exercise) => query.length === 0 || exercise.name.toLowerCase().includes(query));
-  }, [exercises, selectedExerciseIds, exerciseSearchText]);
+      if (!pickedExerciseId) {
+        return;
+      }
 
-  const filteredExercises = useMemo(() => {
-    return filterExercisesByProgramType(exercises, showAll ? null : programType);
-  }, [exercises, programType, showAll]);
+      const exercise = exercisesById.get(pickedExerciseId);
 
-  const currentExercise = useMemo(() => {
-    return getCurrentExercise(filteredExercises, currentIndex);
-  }, [filteredExercises, currentIndex]);
+      if (!exercise) {
+        return;
+      }
 
-  const alternatives = useMemo(() => {
-    if (!alternativesExercise) return [];
-    return getAlternativeExercises(exercises, alternativesExercise);
-  }, [exercises, alternativesExercise]);
+      setSelectedExercises((current) => [...current, editorValueForExercise(exercise, current.length)]);
+      setValidationErrors({});
+      setError(null);
+    }, [consumePickedExercise, exercisesById])
+  );
 
   const updateSelectedExercise = (index: number, value: WorkoutExerciseEditorValue) => {
     setSelectedExercises((current) =>
@@ -229,56 +185,9 @@ export default function NewWorkoutScreen() {
     setValidationErrors({});
   };
 
-  const handleSwipeRight = () => {
-    if (currentExercise) {
-      try {
-        addExercise(currentExercise);
-        setSelectedExercises((current) => [...current, editorValueForExercise(currentExercise, current.length)]);
-        setValidationErrors({});
-        setError(null);
-        nextCard();
-      } catch (error) {
-        console.error("Error adding exercise:", error);
-        setError("Failed to add exercise");
-      }
-    }
-  };
-
-  const handleSwipeLeft = () => {
-    try {
-      nextCard();
-    } catch (error) {
-      console.error("Error navigating to next card:", error);
-    }
-  };
-
-  const handleSwipeUp = () => {
-    if (currentExercise) {
-      try {
-        openAlternatives(currentExercise);
-      } catch (error) {
-        console.error("Error opening alternatives:", error);
-      }
-    }
-  };
-
-  const handleSelectAlternative = (exercise: Exercise) => {
-    try {
-      closeAlternatives();
-      addExercise(exercise);
-      setSelectedExercises((current) => [...current, editorValueForExercise(exercise, current.length)]);
-      setValidationErrors({});
-      setError(null);
-      nextCard();
-    } catch (error) {
-      console.error("Error selecting alternative:", error);
-      setError("Failed to add alternative exercise");
-    }
-  };
-
-  const handleProgramTypeChange = (type: string | null) => {
-    setProgramType(type);
-    setProgramTypeFilter(type);
+  const handleOpenAddExercise = () => {
+    openExercisePicker(selectedExerciseIds);
+    router.push("/workouts/add-exercise");
   };
 
   const saveWorkout = async () => {
@@ -391,102 +300,16 @@ export default function NewWorkoutScreen() {
         )}
       </Pressable>
 
-      {!editWorkoutId && (
-        <>
-          <View style={styles.swipeDeckSection}>
-            <View style={styles.filterRow}>
-              <Text style={styles.filterLabel}>Program Type:</Text>
-              <View style={styles.filterButtons}>
-                <Pressable
-                  style={[styles.filterButton, programType === "Push" ? styles.filterButtonActive : null]}
-                  onPress={() => handleProgramTypeChange("Push")}
-                >
-                  <Text style={[styles.filterButtonText, programType === "Push" ? styles.filterButtonTextActive : null]}>Push</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.filterButton, programType === "Pull" ? styles.filterButtonActive : null]}
-                  onPress={() => handleProgramTypeChange("Pull")}
-                >
-                  <Text style={[styles.filterButtonText, programType === "Pull" ? styles.filterButtonTextActive : null]}>Pull</Text>
-                </Pressable>
-                <Pressable
-                  style={[styles.filterButton, programType === "Legs" ? styles.filterButtonActive : null]}
-                  onPress={() => handleProgramTypeChange("Legs")}
-                >
-                  <Text style={[styles.filterButtonText, programType === "Legs" ? styles.filterButtonTextActive : null]}>Legs</Text>
-                </Pressable>
-              </View>
-            </View>
-            <View style={styles.showAllRow}>
-              <Text style={styles.showAllLabel}>Show all exercises</Text>
-              <Switch
-                value={showAll}
-                onValueChange={setShowAll}
-                trackColor={{ false: "#767577", true: theme.colors.primary }}
-              />
-            </View>
-            {currentExercise ? (
-              <SwipeCard
-                exercise={currentExercise}
-                onSwipeRight={handleSwipeRight}
-                onSwipeLeft={handleSwipeLeft}
-                onSwipeUp={handleSwipeUp}
-                isAdded={addedExerciseIds.has(currentExercise.id)}
-              />
-            ) : (
-              <EmptyState
-                title="No more exercises"
-                message="You've swiped through all available exercises."
-              />
-            )}
-          </View>
-
-          <AlternativesModal
-            visible={alternativesOpen}
-            alternatives={alternatives}
-            onSelectAlternative={handleSelectAlternative}
-            onClose={closeAlternatives}
-          />
-        </>
-      )}
-
-      {editWorkoutId && (
-        <View style={styles.exerciseSearchSection}>
-          <Text style={styles.sectionTitle}>Add exercises</Text>
-          <TextInput
-            accessibilityLabel="Search exercises"
-            onChangeText={setExerciseSearchText}
-            placeholder="Search exercises..."
-            style={styles.searchInput}
-            placeholderTextColor={theme.colors.muted}
-            value={exerciseSearchText}
-          />
-          {addableExercises.length === 0 ? (
-            <EmptyState
-              title="No matching exercises"
-              message="Try a different search, or clear it to see all exercises."
-            />
-          ) : null}
-          <ScrollView style={styles.exerciseList}>
-            {addableExercises
-              .slice(0, 10)
-              .map((exercise) => (
-                <Pressable
-                  key={exercise.id}
-                  style={styles.exerciseListItem}
-                  onPress={() => {
-                    setSelectedExercises((current) => [...current, editorValueForExercise(exercise, current.length)]);
-                    setValidationErrors({});
-                    setError(null);
-                  }}
-                >
-                  <Text style={styles.exerciseListItemName}>{exercise.name}</Text>
-                  <Text style={styles.exerciseListItemMuscle}>{exercise.muscleGroupId}</Text>
-                </Pressable>
-              ))}
-          </ScrollView>
-        </View>
-      )}
+      <View style={styles.exerciseSearchSection}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add exercises"
+          onPress={handleOpenAddExercise}
+          style={styles.addExerciseButton}
+        >
+          <Text style={styles.addExerciseButtonText}>+ Add exercise</Text>
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
@@ -562,86 +385,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700"
   },
-  swipeDeckSection: {
-    gap: theme.spacing.md
-  },
-  filterRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: theme.spacing.sm
-  },
-  filterLabel: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.text
-  },
-  filterButtons: {
-    flexDirection: "row",
-    gap: theme.spacing.sm
-  },
-  filterButton: {
-    paddingHorizontal: theme.spacing.md,
-    paddingVertical: theme.spacing.sm,
-    borderRadius: theme.radius.sm,
-    backgroundColor: "#f3f6fb"
-  },
-  filterButtonActive: {
-    backgroundColor: theme.colors.primary
-  },
-  filterButtonText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: theme.colors.text
-  },
-  filterButtonTextActive: {
-    color: theme.colors.primaryText
-  },
-  showAllRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: theme.spacing.md
-  },
-  showAllLabel: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: theme.colors.text
-  },
   exerciseSearchSection: {
     gap: theme.spacing.md
   },
-  searchInput: {
+  addExerciseButton: {
     minHeight: 48,
+    alignItems: "center",
+    justifyContent: "center",
     borderRadius: theme.radius.sm,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-    color: theme.colors.text,
+    borderColor: theme.colors.primary,
+    paddingHorizontal: theme.spacing.md
+  },
+  addExerciseButtonText: {
+    color: theme.colors.primary,
     fontSize: 16,
-    paddingHorizontal: theme.spacing.md,
-    marginBottom: theme.spacing.md
-  },
-  exerciseList: {
-    maxHeight: 200,
-    gap: theme.spacing.sm
-  },
-  exerciseListItem: {
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.border
-  },
-  exerciseListItemName: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.xs
-  },
-  exerciseListItemMuscle: {
-    fontSize: 14,
-    color: theme.colors.muted,
-    textTransform: "capitalize"
+    fontWeight: "800"
   }
 });

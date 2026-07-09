@@ -47,20 +47,30 @@ describe("SetLogEditor", () => {
     expect(view.queryByLabelText("Weight")).toBeNull();
   });
 
-  it("blocks logging while resting and shows the remaining time", async () => {
+  it("shows the remaining rest time next to the Log set label and turns the button into Skip rest while resting", async () => {
+    const onSkipRest = jest.fn();
     const view = await render(
-      <SetLogEditor isResting restRemainingSeconds={65} onSkipRest={jest.fn()} onSubmit={jest.fn()} />
+      <SetLogEditor isResting restRemainingSeconds={65} onSkipRest={onSkipRest} onSubmit={jest.fn()} />
     );
 
     expect(view.getByText("Rest 01:05")).toBeOnTheScreen();
-    expect(view.getByText("Resting…")).toBeOnTheScreen();
-    expect(view.getByLabelText("Submit set log").props.accessibilityState?.disabled).toBe(true);
-    expect(view.getByLabelText("Skip rest").props.accessibilityState?.disabled).toBe(false);
+
+    const button = view.getByLabelText("Skip rest");
+
+    expect(button).toBeOnTheScreen();
+    expect(view.getByText("Skip rest")).toBeOnTheScreen();
+    expect(view.queryByLabelText("Submit set log")).toBeNull();
+    expect(button.props.accessibilityState?.disabled).toBeFalsy();
+
+    await fireEvent.press(button);
+    expect(onSkipRest).toHaveBeenCalledTimes(1);
   });
 
-  it("grays out skip rest when not resting", async () => {
+  it("shows the Log set button, and still shows the configured rest duration, when not resting", async () => {
     const view = await render(<SetLogEditor restRemainingSeconds={90} onSkipRest={jest.fn()} onSubmit={jest.fn()} />);
 
-    expect(view.getByLabelText("Skip rest").props.accessibilityState?.disabled).toBe(true);
+    expect(view.getByText("Rest 01:30")).toBeOnTheScreen();
+    expect(view.getByLabelText("Submit set log")).toBeOnTheScreen();
+    expect(view.queryByLabelText("Skip rest")).toBeNull();
   });
 });

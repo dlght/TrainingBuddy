@@ -81,7 +81,7 @@ description: "Task list for Session Duration, Streaks, and Effort Rating impleme
 - [x] T012 [US1] Create `src/features/sessions/useElapsedSeconds.ts`: a ticking hook (1s `setInterval`, cleaned up the same way as `useRestTimer`) returning live elapsed seconds since a given `startedAt` while `isRunning`
 - [x] T013 [US1] In `app/workouts/[workoutId]/session.tsx`, render `formatDuration` of the live `useElapsedSeconds` value in large, centered text on the workout-complete card (`styles.completeCard`)
 - [x] T014 [US1] Add a `sessionSummary` state to `app/workouts/[workoutId]/session.tsx`: on a successful `finishSession`, instead of immediately navigating, compute the final duration from the returned session's `startedAt`/`endedAt` (via `duration.ts`), store it, and render a new summary block (title, large centered final duration, a "Done" button); "Done" performs the existing `router.replace(/workouts/${workoutId})` navigation that used to fire immediately on Finish
-- [ ] T015 [US1] Validate manually in Expo: start a session, watch the complete-card duration count up, finish, confirm the session-summary screen shows a static final duration close to what was last displayed live — with network disabled
+- [x] T015 [US1] Validate manually in Expo: start a session, watch the complete-card duration count up, finish, confirm the session-summary screen shows a static final duration close to what was last displayed live — with network disabled
 
 **Checkpoint**: User Story 1 is fully functional and independently testable
 
@@ -100,7 +100,7 @@ description: "Task list for Session Duration, Streaks, and Effort Rating impleme
 ### Implementation for User Story 2
 
 - [x] T017 [US2] In `app/history/index.tsx`, call `formatDuration(getElapsedSeconds(session.startedAt, session.endedAt))` per session card and render it alongside the existing set-count/volume details
-- [ ] T018 [US2] Validate manually in Expo: finish a couple of workouts of different lengths, open History, confirm each card shows a plausible duration — with network disabled
+- [x] T018 [US2] Validate manually in Expo: finish a couple of workouts of different lengths, open History, confirm each card shows a plausible duration — with network disabled
 
 **Checkpoint**: User Stories 1 and 2 both work independently
 
@@ -123,7 +123,7 @@ description: "Task list for Session Duration, Streaks, and Effort Rating impleme
 - [x] T022 [US3] Create `src/features/progress/streakService.ts`: wraps `sessionRepository.listCompletedSessionsSince(userId, ~60-day-ago ISO)`, buckets results to local calendar days, calls `computeStreakDays`, exposes `getCurrentStreak()` (runtime singleton, mirrors `historyService`'s shape)
 - [x] T023 [US3] In `app/index.tsx`, fetch the current streak inside the existing dashboard-stats `useFocusEffect` and display it (e.g. "3-day streak") near the existing stats
 - [x] T024 [US3] In `app/workouts/[workoutId]/session.tsx`, after `finishSession` succeeds, call `streakService.getCurrentStreak()` and include it in the `sessionSummary` state from T014, rendering it in the summary block
-- [ ] T025 [US3] Validate manually in Expo: complete workouts across consecutive calendar days (adjusting device date or seeding sessions with different `endedAt` values) and confirm the streak updates correctly on both the dashboard and the finish summary — with network disabled
+- [x] T025 [US3] Validate manually in Expo: complete workouts across consecutive calendar days (adjusting device date or seeding sessions with different `endedAt` values) and confirm the streak updates correctly on both the dashboard and the finish summary — with network disabled
 
 **Checkpoint**: User Stories 1-3 all functional independently
 
@@ -149,7 +149,7 @@ description: "Task list for Session Duration, Streaks, and Effort Rating impleme
 - [x] T030 [US4] Create `src/features/sessions/EffortRatingPicker.tsx`: 5 selectable chips built from `RATING_OPTIONS`, controlled `selectedRating`/`onSelect` props, no option selected by default
 - [x] T031 [US4] In `app/workouts/[workoutId]/session.tsx`: render `EffortRatingPicker` on the workout-complete card (alongside the duration readout from US1); pass the selected rating into `finishSession`'s call to `sessionService.completeSession(sessionId, { rating: selectedRating })`; include the chosen rating's label (or "not rated") in the `sessionSummary` render from T014
 - [x] T032 [US4] In `app/history/index.tsx`, render each session's rating via `getEffortRatingMeta`, with an explicit "not rated" state when `rating` is `null`
-- [ ] T033 [US4] Validate manually in Expo: finish separate workouts selecting each of the 5 ratings in turn and confirm the label appears correctly in the session summary and later in History; finish one more workout without selecting a rating and confirm it saves and shows "not rated" — with network disabled
+- [x] T033 [US4] Validate manually in Expo: finish separate workouts selecting each of the 5 ratings in turn and confirm the label appears correctly in the session summary and later in History; finish one more workout without selecting a rating and confirm it saves and shows "not rated" — with network disabled
 
 **Checkpoint**: All 4 user stories independently functional
 
@@ -162,8 +162,65 @@ description: "Task list for Session Duration, Streaks, and Effort Rating impleme
 - [x] T034 [P] Run `npx tsc --noEmit` and fix any type errors surfaced by the `rating`/duration/streak changes rippling through consumers
 - [x] T035 [P] Run the full Jest suite (`npm test`) and extend the `TestDatabase` mock (`tests/helpers/testDatabase.ts`) for the new `rating` column and `completeSession` write path wherever an existing integration test now touches it
 - [x] T036 Run the `workout_sessions.rating` migration test against a simulated pre-existing device before considering T003 done (cross-reference T005)
-- [ ] T037 End-to-end manual validation in Expo: start a session, watch duration tick on the complete card, select a rating, finish, confirm the session summary shows duration + streak + rating, confirm History reflects all three for that session — with network disabled
-- [ ] T038 Update `specs/005-session-stats-and-media/spec.md` status from Draft to Delivered once all checkpoints pass
+- [x] T037 End-to-end manual validation in Expo: start a session, watch duration tick on the complete card, select a rating, finish, confirm the session summary shows duration + streak + rating, confirm History reflects all three for that session — with network disabled
+- [x] T038 Update `specs/005-session-stats-and-media/spec.md` status from Draft to Delivered once all checkpoints pass
+
+---
+
+## Phase 9: Round 2 (post-validation feedback — timer/finish rework, streak layout fix, interactive chart, history calendar)
+
+**Purpose**: Implement the feedback captured in spec.md's "Round 2 input" and the amended User Stories 1, 3, plus new User Stories 5-7
+
+### Timer + one-tap Finish (amends US1)
+
+- [x] T039 [US1] Remove `SessionSummary` state/type and `finishSessionSummary` from `app/workouts/[workoutId]/session.tsx`; `finishSession` now calls `sessionService.completeSession` then immediately `resetSessionStore()` + `router.replace(...)`, same shape as before Round 1
+- [x] T040 [US1] Add `workoutCompletedAt` state to `app/workouts/[workoutId]/session.tsx`, set once via a `useEffect` on `isWorkoutComplete` becoming true; change `useElapsedSeconds`'s `isRunning` argument to `!isWorkoutComplete`; pass `endedAt: workoutCompletedAt ?? undefined` into `sessionService.completeSession`
+- [x] T041 [US1] Move the big duration readout out of `styles.completeCard` into a new persistent block directly under the screen header, rendered whenever `sessionDetails` exists (not only when `isWorkoutComplete`)
+- [x] T042 [US1] Update `sessionService.completeSession`'s type/runtime singleton if needed so `endedAt` is accepted alongside `rating` (repository already supports it — confirm the service layer passes it through)
+- [x] T043 [P] [US1] Rewrite the relevant `tests/unit/ActiveSession.test.tsx` cases: timer visible and ticking from session start; frozen (unchanging) once "Workout complete" renders; tapping "Finish workout" navigates immediately with no intermediate screen; persisted `completeSession` call includes an `endedAt` matching the frozen moment
+
+### Dashboard streak layout fix + tappable trend chart (amends US3, adds US5)
+
+- [x] T044 [US3] In `app/index.tsx`, move `statsRow` out of `heroHeader` to its own full-width sibling `View` inside `heroCard`
+- [x] T045 [US5] Add per-day `setCount` to `calculateWeeklyDashboardStats` in `src/features/progress/dashboardStats.ts` (group `recentSetLogs` by date, same source data already fetched)
+- [x] T046 [US5] In `app/index.tsx`, add `selectedDayKey` state; wrap each chart day in a `Pressable` setting it; render a detail line below the chart showing the selected day's `setCount`/`volume`
+- [x] T047 [P] [US3] [US5] Extend/add dashboard tests: streak tile renders without overflow-prone nesting (structural assertion or snapshot of the new layout); tapping a chart day shows its detail; tapping another day updates it
+
+### History calendar + typography cleanup (adds US6, US7)
+
+- [x] T048 [P] [US6] Create `src/features/progress/monthCalendar.ts`: pure `buildMonthGrid(year, monthIndex)` and `shiftMonth(year, monthIndex, delta)`
+- [x] T049 [P] [US6] Unit test `tests/unit/monthCalendar.test.ts`: correct leading/trailing padding for months starting on each weekday, February in a leap vs. non-leap year, December→January and January→December rollover in `shiftMonth`
+- [x] T050 [US6] Add `listCompletedSessionsInRange(userId, startIso, endIsoExclusive)` to `src/db/repositories/sessionRepository.ts`, reusing the `listCompletedSessions` query shape with a date-range `WHERE` instead of `LIMIT`
+- [x] T051 [US6] Add a `listCompletedSessionsInRange` wrapper to `src/features/progress/historyService.ts`
+- [x] T052 [P] [US6] Extend `tests/integration/historyService.test.ts` (real SQLite) for `listCompletedSessionsInRange`: sessions inside the range returned, outside excluded, active/discarded excluded
+- [x] T053 [US6] Rewrite `app/history/index.tsx` around a month calendar: current month grid with marked worked-out days, prev/next month controls, `selectedDateKey` state (defaults to today if today has a session), selected day's session(s) rendered below via the improved card treatment (T054); remove the old unbounded flat list
+- [x] T054 [US7] In the (rewritten) `app/history/index.tsx` session-detail card, increase font size for Date/Duration/Effort and remove the total-volume line entirely
+- [x] T055 [P] [US6] [US7] Rewrite `tests/unit/HistoryScreen.test.tsx`: calendar renders with marked/unmarked days for a given month; tapping a marked day shows its session(s) with duration/rating in larger type and no volume figure; a day with 2 sessions shows both; unmarked-day tap doesn't error; month navigation updates marked days
+
+### Round 2 regression sweep
+
+- [x] T056 [P] Run `npx tsc --noEmit` and fix any type errors
+- [x] T057 [P] Run `npx eslint` on all Round 2 files and fix any new violations (not pre-existing ones)
+- [x] T058 Run the full Jest suite (`npm test`) and fix any regressions in tests touching `app/index.tsx`, `app/history/index.tsx`, or `app/workouts/[workoutId]/session.tsx`
+- [x] T059 Validate manually in Expo: start a session and confirm the top timer ticks from the start; reach "workout complete" and confirm the timer visibly stops; tap "Finish workout" and confirm it leaves the screen in one tap; check the dashboard streak tile renders fully on-screen; tap a few trend-chart days; open History, confirm the calendar marks real workout days, navigate a month, tap a marked day and a day with 2+ sessions if you have one — with network disabled
+
+**Checkpoint**: All Round 2 items implemented and covered by tests; T059 (manual Expo validation) pending your hands-on pass
+
+---
+
+## Phase 10: Round 3 (further validation feedback — richer History day-detail)
+
+**Purpose**: Amend User Story 7 with exercise count, volume+unit, resting time, and working time on each History session-detail card
+
+- [x] T060 [P] [US7] Create `src/features/sessions/sessionBreakdown.ts`: pure `computeSessionBreakdown(startedAt, endedAt, setLogs)` returning `{ exerciseCount, workingSeconds, restingSeconds }`
+- [x] T061 [P] [US7] Unit test `tests/unit/sessionBreakdown.test.ts`: exercise count from distinct `workoutExerciseId`; resting time sums gaps between consecutive `completedAt`; working time is total minus resting, clamped at 0; single-set (no gaps) session reports 0 resting / full duration working
+- [x] T062 [US7] Add `listSetLogsForSession(sessionId)` to `src/features/progress/historyService.ts`, wrapping the existing `sessionRepository.listSetLogs`
+- [x] T063 [US7] In `app/history/index.tsx`: fetch the profile's `weightUnit` once (`profileService.getProfile()`); on `selectedDateKey`/`selectedSessions` change, fetch each session's set logs via `listSetLogsForSession`, compute its breakdown, cache by session id; render exercise count, `"{totalVolume} {weightUnit}"`, resting time, and working time on each session-detail card alongside the existing Date/Duration/Effort lines
+- [x] T064 [P] [US7] Extend `tests/unit/HistoryScreen.test.tsx`: a selected session's card shows exercise count, volume with the mocked profile's weight unit, resting time, and working time
+- [x] T065 [P] Run `npx tsc --noEmit`, `npx eslint` on touched files, and the full Jest suite; fix any regressions
+- [x] T066 Validate manually in Expo: open History, select a day with a multi-exercise session, confirm exercise count/volume-with-unit/resting-time/working-time all render and look sensible (working + resting roughly matches the shown duration) — with network disabled
+
+**Checkpoint**: Round 3 implemented and covered by tests; T066 (manual Expo validation) pending your hands-on pass
 
 ---
 
