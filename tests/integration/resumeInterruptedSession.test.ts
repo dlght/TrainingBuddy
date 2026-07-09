@@ -1,50 +1,34 @@
-import { createProfileServiceForDatabase } from "@/features/profile/profileService";
-import { createSessionServiceForDatabase } from "@/features/sessions/sessionService";
-import { createSetLogServiceForDatabase } from "@/features/sessions/setLogService";
-import { loadSeedData } from "@/db/seed/loadSeedData";
-import { createSessionRepository } from "@/db/repositories/sessionRepository";
-import { createWorkoutRepository } from "@/db/repositories/workoutRepository";
+import { createSessionService } from "@/features/sessions/sessionService";
+import { createSetLogService } from "@/features/sessions/setLogService";
 
-import { TestDatabase } from "../helpers/testDatabase";
+import { createFakeSupabaseClient } from "../helpers/fakeSupabase";
+import { baseSeed, TEST_USER_ID } from "../helpers/seedFixture";
 
 describe("interrupted session resume and discard", () => {
   it("resumes logged set data after recreating services and can discard the active session", async () => {
-    const database = new TestDatabase();
+    const client = createFakeSupabaseClient(baseSeed(), TEST_USER_ID);
+    const sessionService = createSessionService(client);
+    const setLogService = createSetLogService(client);
 
-    await loadSeedData(database);
-    await createProfileServiceForDatabase(database).saveProfileInput({
-      id: "local-user",
-      name: "Alex",
-      bodyweight: 75,
-      height: null,
-      weightUnit: "kg",
-      experienceLevel: "new",
-      goal: "Build consistency"
-    });
+    const started = await sessionService.startWorkoutSession("workout-a");
 
-    const [template] = await createWorkoutRepository(database).listTemplateWorkouts();
-    const firstSessionService = createSessionServiceForDatabase(database);
-    const firstSetLogService = createSetLogServiceForDatabase(database);
-    const started = await firstSessionService.startWorkoutSession(template.id, "local-user");
-
-    await firstSetLogService.logSet({
+    await setLogService.logSet({
       sessionId: started.session.id,
       workoutExerciseId: started.exercises[0].id,
       reps: 8,
-      weight: 20,
+      weight: 20
     });
 
-
-    const resumed = await createSessionServiceForDatabase(database).resumeActiveSession("local-user");
+    const resumed = await createSessionService(client).resumeActiveSession();
 
     expect(resumed?.session.id).toBe(started.session.id);
     expect(resumed?.setLogs).toHaveLength(1);
 
-    await createSessionServiceForDatabase(database).discardSession(started.session.id);
+    await createSessionService(client).discardSession(started.session.id);
 
-    expect(await createSessionServiceForDatabase(database).resumeActiveSession("local-user")).toBeNull();
-    expect((await createSessionRepository(database).getSessionById(started.session.id))?.status).toBe(
-      "discarded"
-    );
+    expect(await createSessionService(client).resumeActiveSession()).toBeNull();
+
+    const discarded = await createSessionService(client).getSessionDetails(started.session.id);
+    expect(discarded.session.status).toBe("discarded");
   });
 });

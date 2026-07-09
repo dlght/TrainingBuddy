@@ -1,64 +1,44 @@
-import { createProfileServiceForDatabase } from "@/features/profile/profileService";
-import { createSessionServiceForDatabase } from "@/features/sessions/sessionService";
-import { createWorkoutBuilderServiceForDatabase } from "@/features/workouts/workoutBuilderService";
-import { loadSeedData } from "@/db/seed/loadSeedData";
-import { createWorkoutRepository } from "@/db/repositories/workoutRepository";
+import { createSessionService } from "@/features/sessions/sessionService";
+import { createWorkoutBuilderService } from "@/features/workouts/workoutBuilderService";
 
-import { TestDatabase } from "../helpers/testDatabase";
-
-async function saveProfile(database: TestDatabase) {
-  await createProfileServiceForDatabase(database).saveProfileInput({
-    id: "local-user",
-    name: "Alex",
-    bodyweight: 75,
-    height: null,
-    weightUnit: "kg",
-    experienceLevel: "new",
-    goal: "Build consistency"
-  });
-}
+import { createFakeSupabaseClient } from "../helpers/fakeSupabase";
+import { baseSeed, TEST_USER_ID } from "../helpers/seedFixture";
 
 describe("starting workout sessions", () => {
   it("starts sessions from sample and custom workouts", async () => {
-    const database = new TestDatabase();
+    const client = createFakeSupabaseClient(baseSeed(), TEST_USER_ID);
+    const sessionService = createSessionService(client);
 
-    await loadSeedData(database);
-    await saveProfile(database);
-
-    const sessionService = createSessionServiceForDatabase(database);
-    const workoutRepository = createWorkoutRepository(database);
-    const [template] = await workoutRepository.listTemplateWorkouts();
-
-    const sampleSession = await sessionService.startWorkoutSession(template.id, "local-user");
+    const sampleSession = await sessionService.startWorkoutSession("workout-a");
 
     expect(sampleSession.session).toMatchObject({
-      workoutId: template.id,
-      userId: "local-user",
+      workoutId: "workout-a",
+      userId: TEST_USER_ID,
       status: "active",
-      workoutNameSnapshot: template.name
+      workoutNameSnapshot: "Full Body A"
     });
     expect(sampleSession.exercises.length).toBeGreaterThan(0);
 
     await sessionService.discardSession(sampleSession.session.id);
 
-    const customWorkout = await createWorkoutBuilderServiceForDatabase(database).createCustomWorkout(
-      {
-        name: "Custom A",
-        exercises: [
-          {
-            exerciseId: "bodyweight-squat",
-            targetRestSeconds: 60,
-            setPlans: [{ reps: 10, weight: null }]
-          }
-        ]
-      },
-      "local-user"
-    );
-    const customSession = await sessionService.startWorkoutSession(customWorkout.id, "local-user");
+    const customWorkout = await createWorkoutBuilderService(client).createCustomWorkout({
+      name: "Custom A",
+      exercises: [{ exerciseId: "bodyweight-squat", targetRestSeconds: 60, setPlans: [{ reps: 10, weight: null }] }]
+    });
+    const customSession = await sessionService.startWorkoutSession(customWorkout.id);
 
     expect(customSession.session.workoutId).toBe(customWorkout.id);
-    expect(customSession.exercises.map((exercise) => exercise.exerciseName)).toEqual([
-      "Bodyweight Squat"
-    ]);
+    expect(customSession.exercises.map((exercise) => exercise.exerciseName)).toEqual(["Bodyweight Squat"]);
+  });
+
+  it("refuses to start a second session while one is already active", async () => {
+    const client = createFakeSupabaseClient(baseSeed(), TEST_USER_ID);
+    const sessionService = createSessionService(client);
+
+    await sessionService.startWorkoutSession("workout-a");
+
+    await expect(sessionService.startWorkoutSession("workout-a")).rejects.toThrow(
+      "Resume or discard the active workout session before starting another."
+    );
   });
 });

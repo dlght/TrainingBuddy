@@ -230,7 +230,7 @@ export default function ActiveSessionScreen() {
         endedAt: workoutCompletedAt ?? undefined
       });
       resetSessionStore();
-      router.replace(`/workouts/${sessionDetails.workout.id}`);
+      router.replace("/");
     } catch (finishError: unknown) {
       console.error("Session could not be finished.", finishError);
       setError(finishError instanceof Error ? finishError.message : "Session could not be finished.");
@@ -248,7 +248,7 @@ export default function ActiveSessionScreen() {
     try {
       await sessionService.discardSession(sessionDetails.session.id);
       resetSessionStore();
-      router.replace("/workouts");
+      router.replace("/");
     } catch (error) {
       console.error("Session could not be discarded.", error);
       setError("Session could not be discarded.");

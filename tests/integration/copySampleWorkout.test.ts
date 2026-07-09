@@ -1,21 +1,15 @@
-import { createWorkoutRepository } from "@/db/repositories/workoutRepository";
-import { loadSeedData } from "@/db/seed/loadSeedData";
-import { createWorkoutBuilderServiceForDatabase } from "@/features/workouts/workoutBuilderService";
+import { createWorkoutBuilderService } from "@/features/workouts/workoutBuilderService";
 
-import { TestDatabase } from "../helpers/testDatabase";
+import { createFakeSupabaseClient } from "../helpers/fakeSupabase";
+import { baseSeed, TEST_USER_ID } from "../helpers/seedFixture";
 
 describe("copying sample workouts", () => {
   it("copies a protected sample before custom editing", async () => {
-    const database = new TestDatabase();
-
-    await loadSeedData(database);
-
-    const repository = createWorkoutRepository(database);
-    const service = createWorkoutBuilderServiceForDatabase(database);
-    const [template] = await repository.listTemplateWorkouts();
+    const client = createFakeSupabaseClient(baseSeed(), TEST_USER_ID);
+    const service = createWorkoutBuilderService(client);
 
     await expect(
-      service.updateCustomWorkout(template.id, {
+      service.updateCustomWorkout("workout-a", {
         name: "Edited Sample",
         exercises: [
           {
@@ -30,14 +24,10 @@ describe("copying sample workouts", () => {
       })
     ).rejects.toThrow("Sample workout templates are protected");
 
-    const copied = await service.copyTemplateWorkout(template.id, "local-user");
-    const original = await repository.getWorkoutWithExercises(template.id);
+    const original = await service.getWorkout("workout-a");
+    const copied = await service.copyTemplateWorkout("workout-a");
 
-    expect(copied).toMatchObject({
-      isTemplate: false,
-      userId: "local-user",
-      sourceTemplateId: template.id
-    });
+    expect(copied).toMatchObject({ isTemplate: false, userId: TEST_USER_ID, sourceTemplateId: "workout-a" });
     expect(copied.exercises).toHaveLength(original?.exercises.length ?? 0);
     expect(original?.isTemplate).toBe(true);
 
@@ -52,6 +42,6 @@ describe("copying sample workouts", () => {
     });
 
     expect(updatedCopy.name).toBe("Full Body A Custom");
-    expect((await repository.getWorkoutById(template.id))?.name).toBe(template.name);
+    expect((await service.getWorkout("workout-a"))?.name).toBe("Full Body A");
   });
 });

@@ -7,6 +7,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
 import { WorkoutEmptyState } from "@/features/workouts/WorkoutEmptyState";
+import { workoutBuilderService } from "@/features/workouts/workoutBuilderService";
 import {
   workoutListService,
   type WorkoutListData
@@ -70,15 +71,8 @@ export default function WorkoutsScreen() {
 
   const handleToggleFavourite = async (workoutId: string) => {
     try {
-      const [{ getReadyDatabaseClient }, { createWorkoutRepository }] = await Promise.all([
-        import("@/db/client"),
-        import("@/db/repositories/workoutRepository")
-      ]);
-      const { adapter } = await getReadyDatabaseClient();
-      const repo = createWorkoutRepository(adapter as any);
-      await repo.toggleFavourite(workoutId);
-      
-      // Reload workout data
+      await workoutBuilderService.toggleFavourite(workoutId);
+
       const data = await workoutListService.listWorkouts();
       setWorkoutData(data);
     } catch (error) {

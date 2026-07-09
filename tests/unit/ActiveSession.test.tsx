@@ -171,7 +171,7 @@ describe("ActiveSession screen", () => {
         endedAt: expect.any(String)
       })
     );
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/workouts/workout-1"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/"));
   });
 
   it("finishes a session with no rating selected, saving null", async () => {
@@ -215,7 +215,7 @@ describe("ActiveSession screen", () => {
         endedAt: expect.any(String)
       })
     );
-    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/workouts/workout-1"));
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith("/"));
   });
 
   it("shows a persistent timer at the top that keeps ticking while exercises are in progress", async () => {

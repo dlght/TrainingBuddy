@@ -219,11 +219,13 @@ export default function NewWorkoutScreen() {
     setValidationErrors({});
 
     try {
-      const savedWorkout = editWorkoutId
-        ? await workoutBuilderService.updateCustomWorkout(editWorkoutId, values)
-        : await workoutBuilderService.createCustomWorkout(values);
-
-      router.replace(`/workouts/${savedWorkout.id}`);
+      if (editWorkoutId) {
+        await workoutBuilderService.updateCustomWorkout(editWorkoutId, values);
+        router.replace(`/workouts/${editWorkoutId}`);
+      } else {
+        await workoutBuilderService.createCustomWorkout(values);
+        router.replace("/");
+      }
     } catch (error) {
       console.error("Workout could not be saved.", error);
       setError("Workout could not be saved.");

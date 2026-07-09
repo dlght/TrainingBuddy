@@ -1,23 +1,23 @@
-import type { DatabaseAdapter } from "@/db/client";
-import { createWorkoutRepository } from "@/db/repositories/workoutRepository";
-import type { WorkoutWithExercises } from "@/models/workout";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { requireUserId } from "@/lib/currentUser";
+import { supabase } from "@/lib/supabase";
+import type { Workout, WorkoutWithExercises } from "@/models/workout";
 
 import {
   formatWorkoutValidationErrors,
   validateWorkoutDraft,
   type WorkoutDraftValues
 } from "./workoutValidation";
-
-const LOCAL_USER_ID = "local-user";
-
-export type WorkoutBuilderRepository = ReturnType<typeof createWorkoutRepository>;
+import { createWorkoutRepository } from "./workoutRepository";
 
 export type WorkoutBuilderService = {
   getWorkout(workoutId: string): Promise<WorkoutWithExercises | null>;
-  createCustomWorkout(values: WorkoutDraftValues, userId?: string): Promise<WorkoutWithExercises>;
+  createCustomWorkout(values: WorkoutDraftValues): Promise<WorkoutWithExercises>;
   updateCustomWorkout(workoutId: string, values: WorkoutDraftValues): Promise<WorkoutWithExercises>;
   deleteCustomWorkout(workoutId: string): Promise<void>;
-  copyTemplateWorkout(templateWorkoutId: string, userId?: string): Promise<WorkoutWithExercises>;
+  copyTemplateWorkout(templateWorkoutId: string): Promise<WorkoutWithExercises>;
+  toggleFavourite(workoutId: string): Promise<Workout>;
 };
 
 function validatedWorkout(values: WorkoutDraftValues) {
@@ -30,14 +30,17 @@ function validatedWorkout(values: WorkoutDraftValues) {
   return result.value;
 }
 
-export function createWorkoutBuilderService(repository: WorkoutBuilderRepository): WorkoutBuilderService {
+export function createWorkoutBuilderService(client: SupabaseClient): WorkoutBuilderService {
+  const repository = createWorkoutRepository(client);
+
   return {
     getWorkout(workoutId) {
       return repository.getWorkoutWithExercises(workoutId);
     },
 
-    createCustomWorkout(values, userId = LOCAL_USER_ID) {
+    async createCustomWorkout(values) {
       const workout = validatedWorkout(values);
+      const userId = await requireUserId(client);
 
       return repository.createWorkout({
         name: workout.name,
@@ -56,41 +59,16 @@ export function createWorkoutBuilderService(repository: WorkoutBuilderRepository
       return repository.deleteWorkout(workoutId);
     },
 
-    copyTemplateWorkout(templateWorkoutId, userId = LOCAL_USER_ID) {
+    async copyTemplateWorkout(templateWorkoutId) {
+      const userId = await requireUserId(client);
+
       return repository.copyTemplateWorkout(templateWorkoutId, userId);
+    },
+
+    toggleFavourite(workoutId) {
+      return repository.toggleFavourite(workoutId);
     }
   };
 }
 
-export function createWorkoutBuilderServiceForDatabase(database: DatabaseAdapter): WorkoutBuilderService {
-  return createWorkoutBuilderService(createWorkoutRepository(database));
-}
-
-async function createRuntimeWorkoutBuilderService(): Promise<WorkoutBuilderService> {
-  const { getReadyDatabaseClient } = await import("@/db/client");
-  const { adapter } = await getReadyDatabaseClient();
-
-  return createWorkoutBuilderServiceForDatabase(adapter);
-}
-
-export const workoutBuilderService: WorkoutBuilderService = {
-  async getWorkout(workoutId) {
-    return (await createRuntimeWorkoutBuilderService()).getWorkout(workoutId);
-  },
-
-  async createCustomWorkout(values, userId) {
-    return (await createRuntimeWorkoutBuilderService()).createCustomWorkout(values, userId);
-  },
-
-  async updateCustomWorkout(workoutId, values) {
-    return (await createRuntimeWorkoutBuilderService()).updateCustomWorkout(workoutId, values);
-  },
-
-  async deleteCustomWorkout(workoutId) {
-    return (await createRuntimeWorkoutBuilderService()).deleteCustomWorkout(workoutId);
-  },
-
-  async copyTemplateWorkout(templateWorkoutId, userId) {
-    return (await createRuntimeWorkoutBuilderService()).copyTemplateWorkout(templateWorkoutId, userId);
-  }
-};
+export const workoutBuilderService: WorkoutBuilderService = createWorkoutBuilderService(supabase);

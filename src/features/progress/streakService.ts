@@ -1,20 +1,23 @@
-import type { DatabaseAdapter } from "@/db/client";
-import { createSessionRepository } from "@/db/repositories/sessionRepository";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { createSessionRepository } from "@/features/sessions/sessionRepository";
+import { requireUserId } from "@/lib/currentUser";
+import { supabase } from "@/lib/supabase";
 
 import { computeStreakDays } from "./streak";
 
-const LOCAL_USER_ID = "local-user";
 const LOOKBACK_DAYS = 60;
 
 export type StreakService = {
-  getCurrentStreak(userId?: string): Promise<number>;
+  getCurrentStreak(): Promise<number>;
 };
 
-export function createStreakService(
-  sessionRepository: ReturnType<typeof createSessionRepository>
-): StreakService {
+export function createStreakService(client: SupabaseClient): StreakService {
+  const sessionRepository = createSessionRepository(client);
+
   return {
-    async getCurrentStreak(userId = LOCAL_USER_ID) {
+    async getCurrentStreak() {
+      const userId = await requireUserId(client);
       const sinceIso = new Date(Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000).toISOString();
       const sessions = await sessionRepository.listCompletedSessionsSince(userId, sinceIso);
 
@@ -26,19 +29,4 @@ export function createStreakService(
   };
 }
 
-export function createStreakServiceForDatabase(database: DatabaseAdapter): StreakService {
-  return createStreakService(createSessionRepository(database));
-}
-
-async function createRuntimeStreakService(): Promise<StreakService> {
-  const { getReadyDatabaseClient } = await import("@/db/client");
-  const { adapter } = await getReadyDatabaseClient();
-
-  return createStreakServiceForDatabase(adapter);
-}
-
-export const streakService: StreakService = {
-  async getCurrentStreak(userId) {
-    return (await createRuntimeStreakService()).getCurrentStreak(userId);
-  }
-};
+export const streakService: StreakService = createStreakService(supabase);

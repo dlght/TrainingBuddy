@@ -1,145 +1,19 @@
-import { DatabaseSync } from "node:sqlite";
+import { createWorkoutRepository } from "@/features/workouts/workoutRepository";
 
-import { migrations, runMigrations } from "../../src/db/migrate";
-import { createWorkoutRepository } from "../../src/db/repositories/workoutRepository";
-import type { DatabaseAdapter, SqlParams } from "../../src/db/client";
-
-function toArgs(params: SqlParams = []): unknown[] {
-  return Array.isArray(params) ? params : Object.values(params);
-}
-
-/**
- * Uses a real SQLite engine with foreign_keys ON — this bug (re-saving a
- * workout that has logged history threw "FOREIGN KEY constraint failed" and
- * broke the entire app, since db init calls loadSeedData -> upsertSeedWorkout
- * unconditionally) only reproduces with real FK enforcement, which the
- * hand-rolled TestDatabase mock doesn't have.
- */
-function makeRealAdapter(db: DatabaseSync): DatabaseAdapter {
-  return {
-    execAsync: async (sql: string) => {
-      db.exec(sql);
-    },
-    runAsync: async (sql: string, params?: SqlParams) => {
-      const info = db.prepare(sql).run(...(toArgs(params) as never[]));
-      return { changes: Number(info.changes) };
-    },
-    getFirstAsync: async <T>(sql: string, params?: SqlParams) => {
-      return (db.prepare(sql).get(...(toArgs(params) as never[])) as T) ?? null;
-    },
-    getAllAsync: async <T>(sql: string, params?: SqlParams) => {
-      return db.prepare(sql).all(...(toArgs(params) as never[])) as T[];
-    },
-    withTransactionAsync: async <T>(task: () => Promise<T>) => {
-      db.exec("BEGIN");
-      try {
-        const result = await task();
-        db.exec("COMMIT");
-        return result;
-      } catch (error) {
-        db.exec("ROLLBACK");
-        throw error;
-      }
-    }
-  };
-}
-
-async function seedUserAndMuscleGroup(adapter: DatabaseAdapter): Promise<void> {
-  await adapter.runAsync(
-    `INSERT INTO users (id, name, bodyweight, weight_unit, experience_level, goal, created_at)
-     VALUES ('u1', 'Alex', 75, 'kg', 'new', 'Build consistency', '2026-01-01T00:00:00.000Z')`
-  );
-  await adapter.runAsync(`INSERT INTO muscle_groups (id, name) VALUES ('legs', 'legs')`);
-  await adapter.runAsync(
-    `INSERT INTO exercises (id, name, muscle_group_id, image_url, instructions, is_warmup)
-     VALUES ('squat', 'Squat', 'legs', 'assets/seed-exercises/placeholder.txt', 'Squat.', 0)`
-  );
-}
+import { createFakeSupabaseClient } from "../helpers/fakeSupabase";
+import { baseSeed, TEST_USER_ID } from "../helpers/seedFixture";
 
 describe("re-saving a workout that already has logged history", () => {
-  it("upsertSeedWorkout does not throw and preserves the set_logs' workout_exercise_id", async () => {
-    const db = new DatabaseSync(":memory:");
-    db.exec("PRAGMA foreign_keys = ON;");
-    const adapter = makeRealAdapter(db);
-    await runMigrations(adapter, migrations);
-    await seedUserAndMuscleGroup(adapter);
+  it("updateWorkout keeps the workout_exercise id stable and does not break logged set_logs", async () => {
+    const client = createFakeSupabaseClient(baseSeed(), TEST_USER_ID);
+    const repo = createWorkoutRepository(client);
 
-    const repo = createWorkoutRepository(adapter);
-    await repo.upsertSeedWorkout({
-      id: "workout-a",
-      name: "Full Body A",
-      exercises: [
-        {
-          exerciseId: "squat",
-          orderIndex: 0,
-          targetSets: 3,
-          targetRepRangeLow: 10,
-          targetRepRangeHigh: 10,
-          targetRestSeconds: 60,
-          targetWeight: null,
-          supersetGroupId: null
-        }
-      ]
-    });
-
-    const before = await repo.getWorkoutWithExercises("workout-a");
-    const workoutExerciseId = before!.exercises[0].id;
-
-    // Simulate a logged session against that exercise (what breaks the naive DELETE+INSERT).
-    await adapter.runAsync(
-      `INSERT INTO workout_sessions (id, workout_id, user_id, started_at, ended_at, status, workout_name_snapshot)
-       VALUES ('s1', 'workout-a', 'u1', '2026-01-01T00:00:00.000Z', '2026-01-01T01:00:00.000Z', 'completed', 'Full Body A')`
-    );
-    await adapter.runAsync(
-      `INSERT INTO set_logs (id, session_id, workout_exercise_id, set_number, reps, weight, completed_at, exercise_name_snapshot)
-       VALUES ('set1', 's1', ?, 1, 10, 40, '2026-01-01T00:30:00.000Z', 'Squat')`,
-      [workoutExerciseId]
-    );
-
-    // Re-run the seed with a new default weight, like a real seed-version bump does.
-    await expect(
-      repo.upsertSeedWorkout({
-        id: "workout-a",
-        name: "Full Body A",
-        exercises: [
-          {
-            exerciseId: "squat",
-            orderIndex: 0,
-            targetSets: 3,
-            targetRepRangeLow: 10,
-            targetRepRangeHigh: 10,
-            targetRestSeconds: 60,
-            targetWeight: 40,
-            supersetGroupId: null
-          }
-        ]
-      })
-    ).resolves.not.toThrow();
-
-    const after = await repo.getWorkoutWithExercises("workout-a");
-    expect(after!.exercises[0].id).toBe(workoutExerciseId);
-    expect(after!.exercises[0].targetWeight).toBe(40);
-
-    const setLog = await adapter.getFirstAsync<{ id: string }>(
-      "SELECT id FROM set_logs WHERE id = 'set1'"
-    );
-    expect(setLog).not.toBeNull();
-  });
-
-  it("updateWorkout (builder save) does not throw when editing a custom workout with logged history", async () => {
-    const db = new DatabaseSync(":memory:");
-    db.exec("PRAGMA foreign_keys = ON;");
-    const adapter = makeRealAdapter(db);
-    await runMigrations(adapter, migrations);
-    await seedUserAndMuscleGroup(adapter);
-
-    const repo = createWorkoutRepository(adapter);
     const workout = await repo.createWorkout({
       name: "My Workout",
-      userId: "u1",
+      userId: TEST_USER_ID,
       exercises: [
         {
-          exerciseId: "squat",
+          exerciseId: "bodyweight-squat",
           orderIndex: 0,
           targetSets: 3,
           targetRepRangeLow: 10,
@@ -152,23 +26,38 @@ describe("re-saving a workout that already has logged history", () => {
     });
     const workoutExerciseId = workout.exercises[0].id;
 
-    await adapter.runAsync(
-      `INSERT INTO workout_sessions (id, workout_id, user_id, started_at, ended_at, status, workout_name_snapshot)
-       VALUES ('s1', ?, 'u1', '2026-01-01T00:00:00.000Z', '2026-01-01T01:00:00.000Z', 'completed', 'My Workout')`,
-      [workout.id]
-    );
-    await adapter.runAsync(
-      `INSERT INTO set_logs (id, session_id, workout_exercise_id, set_number, reps, weight, completed_at, exercise_name_snapshot)
-       VALUES ('set1', 's1', ?, 1, 10, 40, '2026-01-01T00:30:00.000Z', 'Squat')`,
-      [workoutExerciseId]
-    );
+    // Simulate a logged session against that exercise — the naive
+    // delete-and-reinsert approach this replaced would throw a foreign key
+    // violation the moment a set_logs row like this exists.
+    client.__store.workout_sessions.push({
+      id: "s1",
+      workout_id: workout.id,
+      user_id: TEST_USER_ID,
+      started_at: "2026-01-01T00:00:00.000Z",
+      ended_at: "2026-01-01T01:00:00.000Z",
+      status: "completed",
+      workout_name_snapshot: "My Workout",
+      rating: null
+    });
+    client.__store.set_logs.push({
+      id: "set1",
+      session_id: "s1",
+      workout_exercise_id: workoutExerciseId,
+      set_number: 1,
+      reps: 10,
+      weight: 40,
+      completed_at: "2026-01-01T00:30:00.000Z",
+      exercise_name_snapshot: "Bodyweight Squat",
+      target_reps_snapshot: null,
+      target_rest_seconds_snapshot: null
+    });
 
     await expect(
       repo.updateWorkout(workout.id, {
         name: "My Workout Renamed",
         exercises: [
           {
-            exerciseId: "squat",
+            exerciseId: "bodyweight-squat",
             orderIndex: 0,
             targetSets: 4,
             targetRepRangeLow: 8,
@@ -185,5 +74,89 @@ describe("re-saving a workout that already has logged history", () => {
     expect(after!.exercises[0].id).toBe(workoutExerciseId);
     expect(after!.exercises[0].targetSets).toBe(4);
     expect(after!.exercises[0].targetWeight).toBe(45);
+    expect(client.__store.set_logs.find((row: { id: string }) => row.id === "set1")).toBeDefined();
+  });
+
+  it("shrinking the exercise list best-effort-deletes stale rows but keeps ones still referenced by history", async () => {
+    const client = createFakeSupabaseClient(baseSeed(), TEST_USER_ID);
+    const repo = createWorkoutRepository(client);
+
+    const workout = await repo.createWorkout({
+      name: "Two Exercises",
+      userId: TEST_USER_ID,
+      exercises: [
+        {
+          exerciseId: "bodyweight-squat",
+          orderIndex: 0,
+          targetSets: 3,
+          targetRepRangeLow: 10,
+          targetRepRangeHigh: 10,
+          targetRestSeconds: 60,
+          targetWeight: null,
+          supersetGroupId: null
+        },
+        {
+          exerciseId: "bodyweight-squat",
+          orderIndex: 1,
+          targetSets: 3,
+          targetRepRangeLow: 10,
+          targetRepRangeHigh: 10,
+          targetRestSeconds: 60,
+          targetWeight: null,
+          supersetGroupId: null
+        }
+      ]
+    });
+    const secondExerciseId = workout.exercises[1].id;
+
+    client.__store.workout_sessions.push({
+      id: "s1",
+      workout_id: workout.id,
+      user_id: TEST_USER_ID,
+      started_at: "2026-01-01T00:00:00.000Z",
+      ended_at: "2026-01-01T01:00:00.000Z",
+      status: "completed",
+      workout_name_snapshot: "Two Exercises",
+      rating: null
+    });
+    client.__store.set_logs.push({
+      id: "set1",
+      session_id: "s1",
+      workout_exercise_id: secondExerciseId,
+      set_number: 1,
+      reps: 10,
+      weight: null,
+      completed_at: "2026-01-01T00:30:00.000Z",
+      exercise_name_snapshot: "Bodyweight Squat",
+      target_reps_snapshot: null,
+      target_rest_seconds_snapshot: null
+    });
+
+    // Drop back to a single exercise at order_index 0 — order_index 1 (the
+    // one with logged history) would naively be deleted.
+    const updated = await repo.updateWorkout(workout.id, {
+      name: "Two Exercises",
+      exercises: [
+        {
+          exerciseId: "bodyweight-squat",
+          orderIndex: 0,
+          targetSets: 3,
+          targetRepRangeLow: 10,
+          targetRepRangeHigh: 10,
+          targetRestSeconds: 60,
+          targetWeight: null,
+          supersetGroupId: null
+        }
+      ]
+    });
+
+    // The still-referenced row survives (best-effort delete is skipped on FK
+    // conflict) rather than throwing and losing the whole save — it's still
+    // attached to the workout by workout_id, so it still appears when
+    // re-querying, alongside the one row that was actually kept.
+    expect(updated.exercises.map((exercise) => exercise.id)).toContain(secondExerciseId);
+    expect(
+      client.__store.workout_exercises.find((row: { id: string }) => row.id === secondExerciseId)
+    ).toBeDefined();
   });
 });

@@ -1,31 +1,16 @@
-import { createSessionServiceForDatabase } from "@/features/sessions/sessionService";
-import { createSetLogServiceForDatabase } from "@/features/sessions/setLogService";
-import { createProfileServiceForDatabase } from "@/features/profile/profileService";
-import { loadSeedData } from "@/db/seed/loadSeedData";
-import { createWorkoutRepository } from "@/db/repositories/workoutRepository";
-import { createSessionRepository } from "@/db/repositories/sessionRepository";
+import { createSessionService } from "@/features/sessions/sessionService";
+import { createSetLogService } from "@/features/sessions/setLogService";
 
-import { TestDatabase } from "../helpers/testDatabase";
+import { createFakeSupabaseClient } from "../helpers/fakeSupabase";
+import { baseSeed, TEST_USER_ID } from "../helpers/seedFixture";
 
 describe("logging workout sessions", () => {
   it("logs set entries and completes the active session", async () => {
-    const database = new TestDatabase();
+    const client = createFakeSupabaseClient(baseSeed(), TEST_USER_ID);
+    const sessionService = createSessionService(client);
+    const setLogService = createSetLogService(client);
 
-    await loadSeedData(database);
-    await createProfileServiceForDatabase(database).saveProfileInput({
-      id: "local-user",
-      name: "Alex",
-      bodyweight: 75,
-      height: null,
-      weightUnit: "kg",
-      experienceLevel: "new",
-      goal: "Build consistency"
-    });
-
-    const [template] = await createWorkoutRepository(database).listTemplateWorkouts();
-    const sessionService = createSessionServiceForDatabase(database);
-    const setLogService = createSetLogServiceForDatabase(database);
-    const activeSession = await sessionService.startWorkoutSession(template.id, "local-user");
+    const activeSession = await sessionService.startWorkoutSession("workout-a");
     const firstExercise = activeSession.exercises[0];
 
     const setLog = await setLogService.logSet({
@@ -46,10 +31,28 @@ describe("logging workout sessions", () => {
     });
 
     const completed = await sessionService.completeSession(activeSession.session.id);
-    const storedLogs = await createSessionRepository(database).listSetLogs(activeSession.session.id);
+    const storedLogs = await setLogService.listSetLogs(activeSession.session.id);
 
     expect(completed.session.status).toBe("completed");
     expect(completed.session.endedAt).not.toBeNull();
     expect(storedLogs).toHaveLength(1);
+  });
+
+  it("rejects a set log once the session is no longer active", async () => {
+    const client = createFakeSupabaseClient(baseSeed(), TEST_USER_ID);
+    const sessionService = createSessionService(client);
+    const setLogService = createSetLogService(client);
+
+    const activeSession = await sessionService.startWorkoutSession("workout-a");
+    await sessionService.completeSession(activeSession.session.id);
+
+    await expect(
+      setLogService.logSet({
+        sessionId: activeSession.session.id,
+        workoutExerciseId: activeSession.exercises[0].id,
+        reps: "10",
+        weight: "25"
+      })
+    ).rejects.toThrow("Sets can only be logged to an active session.");
   });
 });

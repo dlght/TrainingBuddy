@@ -1,21 +1,18 @@
-import { createExerciseLibraryServiceForDatabase } from "@/features/exercises/exerciseLibraryService";
-import { loadSeedData } from "@/db/seed/loadSeedData";
+import { createExerciseLibraryService } from "@/features/exercises/exerciseLibraryService";
 
-import { TestDatabase } from "../helpers/testDatabase";
+import { createFakeSupabaseClient } from "../helpers/fakeSupabase";
+import { baseSeed } from "../helpers/seedFixture";
 
-describe("exercise library offline read path", () => {
-  it("reads seeded exercise groups and details without network", async () => {
-    const fetchSpy = jest.spyOn(globalThis, "fetch").mockRejectedValue(new Error("network disabled"));
-    const database = new TestDatabase();
+describe("exercise library read path", () => {
+  it("reads seeded exercise groups and details", async () => {
+    const client = createFakeSupabaseClient(baseSeed());
+    const service = createExerciseLibraryService(client);
 
-    await loadSeedData(database);
-
-    const service = createExerciseLibraryServiceForDatabase(database);
     const library = await service.getLibraryData();
     const legs = await service.listExercisesByMuscleGroup("legs");
     const detail = await service.getExerciseById("bodyweight-squat");
 
-    expect(library.muscleGroups).toHaveLength(6);
+    expect(library.muscleGroups).toHaveLength(1);
     expect(library.exercises.length).toBeGreaterThan(0);
     expect(legs.map((exercise) => exercise.id)).toContain("bodyweight-squat");
     expect(detail).toMatchObject({
@@ -24,8 +21,12 @@ describe("exercise library offline read path", () => {
       muscleGroupId: "legs",
       isWarmup: true
     });
-    expect(fetchSpy).not.toHaveBeenCalled();
+  });
 
-    fetchSpy.mockRestore();
+  it("returns null for an exercise id that doesn't exist", async () => {
+    const client = createFakeSupabaseClient(baseSeed());
+    const service = createExerciseLibraryService(client);
+
+    expect(await service.getExerciseById("does-not-exist")).toBeNull();
   });
 });

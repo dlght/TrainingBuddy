@@ -71,9 +71,10 @@
 
 - What happens when [boundary condition]?
 - How does system handle [error scenario]?
-- What happens when the device is offline or in airplane mode?
-- What happens after the app is closed and reopened with existing local data?
-- What happens when local data was created with an older SQLite schema?
+- What happens when the device is offline or the Supabase request fails?
+- What happens after the app is closed and reopened with an existing session?
+- What happens when the user's auth session has expired?
+- What happens when a user tries to access another user's data?
 
 ## Requirements *(mandatory)*
 
@@ -86,8 +87,8 @@
 - **FR-001**: System MUST [specific capability, e.g., "allow users to log a completed set"]
 - **FR-002**: System MUST [specific validation, e.g., "prevent negative weight or reps"]
 - **FR-003**: Users MUST be able to [key beginner interaction]
-- **FR-004**: System MUST persist relevant workout data locally in SQLite.
-- **FR-005**: Core user flows MUST work without network access.
+- **FR-004**: System MUST persist relevant workout data in Supabase, scoped to the authenticated account via Row Level Security.
+- **FR-005**: Core user flows MUST surface a clear state when the network or Supabase request fails, rather than failing silently.
 - **FR-006**: Beginner-facing screens MUST use plain language and keep the primary action obvious.
 - **FR-007**: Locally persisted data MUST survive app restart and schema migration.
 
@@ -121,7 +122,7 @@
 -->
 
 - TrainingBuddy targets beginners who need simple workout logging more than advanced training analytics.
-- Features are local-only by default unless remote sync or accounts are explicitly requested and justified.
+- Features persist to Supabase under the signed-in account by default; full offline support is out of scope unless explicitly requested and justified.
 - [Assumption about target users]
 - [Assumption about scope boundaries]
 - [Assumption about data/environment]

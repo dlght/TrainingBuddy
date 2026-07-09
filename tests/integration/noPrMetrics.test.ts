@@ -1,46 +1,27 @@
-import { createProfileServiceForDatabase } from "@/features/profile/profileService";
-import { createProgressServiceForDatabase } from "@/features/progress/progressService";
-import { createSessionServiceForDatabase } from "@/features/sessions/sessionService";
-import { createSetLogServiceForDatabase } from "@/features/sessions/setLogService";
-import { loadSeedData } from "@/db/seed/loadSeedData";
-import { createWorkoutRepository } from "@/db/repositories/workoutRepository";
+import { createProgressService } from "@/features/progress/progressService";
+import { createSessionService } from "@/features/sessions/sessionService";
+import { createSetLogService } from "@/features/sessions/setLogService";
 
-import { TestDatabase } from "../helpers/testDatabase";
+import { createFakeSupabaseClient } from "../helpers/fakeSupabase";
+import { baseSeed, TEST_USER_ID } from "../helpers/seedFixture";
 
 describe("progress excludes PR metrics", () => {
   it("does not expose highest weight or one-rep-max records", async () => {
-    const database = new TestDatabase();
+    const client = createFakeSupabaseClient(baseSeed(), TEST_USER_ID);
+    const sessionService = createSessionService(client);
+    const setLogService = createSetLogService(client);
 
-    await loadSeedData(database);
-    await createProfileServiceForDatabase(database).saveProfileInput({
-      id: "local-user",
-      name: "Alex",
-      bodyweight: 75,
-      height: null,
-      weightUnit: "kg",
-      experienceLevel: "new",
-      goal: "Build consistency"
-    });
-
-    const [template] = await createWorkoutRepository(database).listTemplateWorkouts();
-    const sessionService = createSessionServiceForDatabase(database);
-    const setLogService = createSetLogServiceForDatabase(database);
-    const activeSession = await sessionService.startWorkoutSession(template.id, "local-user");
+    const activeSession = await sessionService.startWorkoutSession("workout-a");
     const squat = activeSession.exercises.find((exercise) => exercise.exerciseId === "bodyweight-squat");
 
     if (!squat) {
       throw new Error("Seed workout did not contain Bodyweight Squat.");
     }
 
-    await setLogService.logSet({
-      sessionId: activeSession.session.id,
-      workoutExerciseId: squat.id,
-      reps: 5,
-      weight: 100,
-    });
+    await setLogService.logSet({ sessionId: activeSession.session.id, workoutExerciseId: squat.id, reps: 5, weight: 100 });
     await sessionService.completeSession(activeSession.session.id);
 
-    const progress = await createProgressServiceForDatabase(database).getExerciseProgress("bodyweight-squat");
+    const progress = await createProgressService(client).getExerciseProgress("bodyweight-squat");
 
     expect(progress).not.toHaveProperty("highestWeight");
     expect(progress).not.toHaveProperty("oneRepMax");

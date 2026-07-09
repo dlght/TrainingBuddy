@@ -14,7 +14,9 @@
   },
   "dependencies": {
     "@expo/vector-icons": "latest",
+    "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/native": "latest",
+    "@supabase/supabase-js": "latest",
     "drizzle-orm": "latest",
     "expo": "54.0.0",
     "expo-image": "~3.0.11",

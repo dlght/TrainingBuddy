@@ -22,7 +22,7 @@
 
 **Primary Dependencies**: Expo, React Native, SQLite [library] or NEEDS CLARIFICATION
 
-**Storage**: SQLite local database or NEEDS CLARIFICATION
+**Storage**: Supabase (Postgres + Row Level Security) or NEEDS CLARIFICATION
 
 **Testing**: [e.g., Jest, React Native Testing Library, Expo validation] or NEEDS CLARIFICATION
 
@@ -32,7 +32,7 @@
 
 **Performance Goals**: Beginner logging flow remains responsive during a workout or NEEDS CLARIFICATION
 
-**Constraints**: Offline-capable, local-first persistence, simple beginner UX
+**Constraints**: Per-user data isolation via RLS, standard Expo Go compatibility (no paid Apple account), simple beginner UX
 
 **Scale/Scope**: [domain-specific, e.g., local single-user workout history] or NEEDS CLARIFICATION
 
@@ -42,10 +42,13 @@
 
 - Beginner-first: Does the plan identify the shortest useful beginner workflow
   and avoid expert-only concepts unless explained in context?
-- Offline-first SQLite: Do core flows work without network access, persist to
-  local SQLite, and define restart, airplane-mode, and migration behavior?
-- Approved stack: Does the plan use Expo, React Native, TypeScript, and SQLite?
-  Any native module, cloud service, or platform-specific code MUST be justified.
+- Cloud-backed, per-user data: Does the plan persist to Supabase with Row
+  Level Security scoping every row to its owning account, and define
+  signed-out, network-loss, and session-expiry behavior?
+- Approved stack: Does the plan use Expo, React Native, TypeScript, and
+  Supabase, and keep running unmodified inside standard Expo Go? Any other
+  native module, custom backend server, or platform-specific code MUST be
+  justified.
 - Simplicity: Does the plan defer optional settings, analytics, social,
   gamification, generated plans, wearables, and other non-default scope unless
   explicitly justified?

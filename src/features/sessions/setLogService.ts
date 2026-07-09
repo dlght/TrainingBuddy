@@ -1,7 +1,8 @@
-import type { DatabaseAdapter } from "@/db/client";
-import { createExerciseRepository } from "@/db/repositories/exerciseRepository";
-import { createSessionRepository } from "@/db/repositories/sessionRepository";
-import { createWorkoutRepository } from "@/db/repositories/workoutRepository";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { createExerciseLibraryService } from "@/features/exercises/exerciseLibraryService";
+import { createWorkoutRepository } from "@/features/workouts/workoutRepository";
+import { supabase } from "@/lib/supabase";
 import type { SetLog } from "@/models/session";
 
 import {
@@ -9,10 +10,7 @@ import {
   validateSetLogValues,
   type SetLogFormValues
 } from "./sessionValidation";
-
-export type SetLogRepository = ReturnType<typeof createSessionRepository>;
-export type SetLogWorkoutRepository = ReturnType<typeof createWorkoutRepository>;
-export type SetLogExerciseRepository = ReturnType<typeof createExerciseRepository>;
+import { createSessionRepository } from "./sessionRepository";
 
 export type LogSetInput = SetLogFormValues & {
   sessionId: string;
@@ -25,11 +23,11 @@ export type SetLogService = {
   listSetLogs(sessionId: string): Promise<SetLog[]>;
 };
 
-export function createSetLogService(
-  sessionRepository: SetLogRepository,
-  workoutRepository: SetLogWorkoutRepository,
-  exerciseRepository: SetLogExerciseRepository
-): SetLogService {
+export function createSetLogService(client: SupabaseClient): SetLogService {
+  const sessionRepository = createSessionRepository(client);
+  const workoutRepository = createWorkoutRepository(client);
+  const exerciseLibraryService = createExerciseLibraryService(client);
+
   return {
     async logSet(input) {
       const session = await sessionRepository.getSessionById(input.sessionId);
@@ -53,7 +51,7 @@ export function createSetLogService(
       const nextSetNumber =
         input.setNumber ??
         setLogs.filter((setLog) => setLog.workoutExerciseId === workoutExercise.id).length + 1;
-      const exercise = await exerciseRepository.getExerciseById(workoutExercise.exerciseId);
+      const exercise = await exerciseLibraryService.getExerciseById(workoutExercise.exerciseId);
       const isBodyweight = exercise?.equipment === "bodyweight";
       const validation = validateSetLogValues(
         {
@@ -87,27 +85,4 @@ export function createSetLogService(
   };
 }
 
-export function createSetLogServiceForDatabase(database: DatabaseAdapter): SetLogService {
-  return createSetLogService(
-    createSessionRepository(database),
-    createWorkoutRepository(database),
-    createExerciseRepository(database)
-  );
-}
-
-async function createRuntimeSetLogService(): Promise<SetLogService> {
-  const { getReadyDatabaseClient } = await import("@/db/client");
-  const { adapter } = await getReadyDatabaseClient();
-
-  return createSetLogServiceForDatabase(adapter);
-}
-
-export const setLogService: SetLogService = {
-  async logSet(input) {
-    return (await createRuntimeSetLogService()).logSet(input);
-  },
-
-  async listSetLogs(sessionId) {
-    return (await createRuntimeSetLogService()).listSetLogs(sessionId);
-  }
-};
+export const setLogService: SetLogService = createSetLogService(supabase);

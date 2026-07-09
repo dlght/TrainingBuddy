@@ -1,8 +1,9 @@
-import type { DatabaseAdapter } from "@/db/client";
-import { createWorkoutRepository } from "@/db/repositories/workoutRepository";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { supabase } from "@/lib/supabase";
 import type { WorkoutWithExercises } from "@/models/workout";
 
-export type WorkoutListRepository = ReturnType<typeof createWorkoutRepository>;
+import { createWorkoutRepository } from "./workoutRepository";
 
 export type WorkoutListData = {
   sampleWorkouts: WorkoutWithExercises[];
@@ -13,7 +14,9 @@ export type WorkoutListService = {
   listWorkouts(): Promise<WorkoutListData>;
 };
 
-export function createWorkoutListService(repository: WorkoutListRepository): WorkoutListService {
+export function createWorkoutListService(client: SupabaseClient): WorkoutListService {
+  const repository = createWorkoutRepository(client);
+
   return {
     async listWorkouts() {
       const workouts = await repository.listWorkouts();
@@ -32,19 +35,4 @@ export function createWorkoutListService(repository: WorkoutListRepository): Wor
   };
 }
 
-export function createWorkoutListServiceForDatabase(database: DatabaseAdapter): WorkoutListService {
-  return createWorkoutListService(createWorkoutRepository(database));
-}
-
-async function createRuntimeWorkoutListService(): Promise<WorkoutListService> {
-  const { getReadyDatabaseClient } = await import("@/db/client");
-  const { adapter } = await getReadyDatabaseClient();
-
-  return createWorkoutListServiceForDatabase(adapter);
-}
-
-export const workoutListService: WorkoutListService = {
-  async listWorkouts() {
-    return (await createRuntimeWorkoutListService()).listWorkouts();
-  }
-};
+export const workoutListService: WorkoutListService = createWorkoutListService(supabase);

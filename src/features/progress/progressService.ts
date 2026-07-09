@@ -1,6 +1,7 @@
-import type { DatabaseAdapter } from "@/db/client";
-import { createExerciseRepository } from "@/db/repositories/exerciseRepository";
-import { createProgressRepository } from "@/db/repositories/progressRepository";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { createExerciseLibraryService } from "@/features/exercises/exerciseLibraryService";
+import { supabase } from "@/lib/supabase";
 import type { Exercise } from "@/models/exercise";
 import type { ExerciseHistorySet, ExerciseVolumePoint, ExerciseWeightPoint } from "@/models/session";
 
@@ -10,9 +11,7 @@ import {
   groupHistorySetsBySession,
   type SessionHistorySummary
 } from "./progressCalculations";
-
-export type ProgressRepository = ReturnType<typeof createProgressRepository>;
-export type ProgressExerciseRepository = ReturnType<typeof createExerciseRepository>;
+import { createProgressRepository } from "./progressRepository";
 
 export type ExerciseProgressData = {
   exercise: Exercise | null;
@@ -26,14 +25,14 @@ export type ProgressService = {
   getExerciseProgress(exerciseId: string): Promise<ExerciseProgressData>;
 };
 
-export function createProgressService(
-  progressRepository: ProgressRepository,
-  exerciseRepository: ProgressExerciseRepository
-): ProgressService {
+export function createProgressService(client: SupabaseClient): ProgressService {
+  const progressRepository = createProgressRepository(client);
+  const exerciseLibraryService = createExerciseLibraryService(client);
+
   return {
     async getExerciseProgress(exerciseId) {
       const [exercise, historySets] = await Promise.all([
-        exerciseRepository.getExerciseById(exerciseId),
+        exerciseLibraryService.getExerciseById(exerciseId),
         progressRepository.getExerciseHistory(exerciseId)
       ]);
 
@@ -48,19 +47,4 @@ export function createProgressService(
   };
 }
 
-export function createProgressServiceForDatabase(database: DatabaseAdapter): ProgressService {
-  return createProgressService(createProgressRepository(database), createExerciseRepository(database));
-}
-
-async function createRuntimeProgressService(): Promise<ProgressService> {
-  const { getReadyDatabaseClient } = await import("@/db/client");
-  const { adapter } = await getReadyDatabaseClient();
-
-  return createProgressServiceForDatabase(adapter);
-}
-
-export const progressService: ProgressService = {
-  async getExerciseProgress(exerciseId) {
-    return (await createRuntimeProgressService()).getExerciseProgress(exerciseId);
-  }
-};
+export const progressService: ProgressService = createProgressService(supabase);

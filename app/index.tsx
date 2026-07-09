@@ -12,6 +12,7 @@ import type { WeeklyDashboardStats } from "@/features/progress/dashboardStats";
 import { streakService } from "@/features/progress/streakService";
 import { sessionService, type ActiveSessionDetails } from "@/features/sessions/sessionService";
 import { workoutRecommendationService } from "@/features/workouts/workoutRecommendationService";
+import { describeLoadError } from "@/lib/networkError";
 import type { UserProfile } from "@/models/user";
 
 export default function HomeScreen() {
@@ -24,6 +25,7 @@ export default function HomeScreen() {
   const [suggestedWorkouts, setSuggestedWorkouts] = useState<{ id: string; name: string; isFavourite: boolean }[] | null>(null);
   const [dashboardStats, setDashboardStats] = useState<WeeklyDashboardStats | null>(null);
   const [streakDays, setStreakDays] = useState<number | null>(null);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
 
   useEffect(() => {
@@ -106,10 +108,16 @@ export default function HomeScreen() {
       async function loadDashboardStats() {
         try {
           const stats = await dashboardService.getWeeklyDashboardStats();
-          if (mounted) setDashboardStats(stats);
+          if (mounted) {
+            setDashboardStats(stats);
+            setStatsError(null);
+          }
         } catch (error) {
           console.error("Dashboard stats could not be loaded.", error);
-          if (mounted) setDashboardStats({ days: [], consistencyPercent: 0 });
+          if (mounted) {
+            setDashboardStats(null);
+            setStatsError(describeLoadError(error, "Stats could not be loaded."));
+          }
         }
 
         try {
@@ -117,7 +125,7 @@ export default function HomeScreen() {
           if (mounted) setStreakDays(streak);
         } catch (error) {
           console.error("Streak could not be loaded.", error);
-          if (mounted) setStreakDays(0);
+          if (mounted) setStreakDays(null);
         }
       }
 
@@ -220,6 +228,7 @@ export default function HomeScreen() {
         </View>
 
         {startupError ? <ErrorState message={startupError} title="Startup check" /> : null}
+        {statsError ? <ErrorState message={statsError} title="Couldn't load stats" /> : null}
 
         {activeSession ? (
           <View style={styles.sessionCard}>

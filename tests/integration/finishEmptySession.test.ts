@@ -1,35 +1,15 @@
-import { createSessionServiceForDatabase } from "@/features/sessions/sessionService";
-import { createSetLogServiceForDatabase } from "@/features/sessions/setLogService";
-import { createProfileServiceForDatabase } from "@/features/profile/profileService";
-import { loadSeedData } from "@/db/seed/loadSeedData";
-import { createWorkoutRepository } from "@/db/repositories/workoutRepository";
+import { createSessionService } from "@/features/sessions/sessionService";
+import { createSetLogService } from "@/features/sessions/setLogService";
 
-import { TestDatabase } from "../helpers/testDatabase";
-
-async function prepareDatabase() {
-  const database = new TestDatabase();
-
-  await loadSeedData(database);
-  await createProfileServiceForDatabase(database).saveProfileInput({
-    id: "local-user",
-    name: "Alex",
-    bodyweight: 75,
-    height: null,
-    weightUnit: "kg",
-    experienceLevel: "new",
-    goal: "Build consistency"
-  });
-
-  return database;
-}
+import { createFakeSupabaseClient } from "../helpers/fakeSupabase";
+import { baseSeed, TEST_USER_ID } from "../helpers/seedFixture";
 
 describe("finishing a session with no logged sets", () => {
   it("completes a session that has zero logged sets", async () => {
-    const database = await prepareDatabase();
-    const [template] = await createWorkoutRepository(database).listTemplateWorkouts();
-    const sessionService = createSessionServiceForDatabase(database);
-    const activeSession = await sessionService.startWorkoutSession(template.id, "local-user");
+    const client = createFakeSupabaseClient(baseSeed(), TEST_USER_ID);
+    const sessionService = createSessionService(client);
 
+    const activeSession = await sessionService.startWorkoutSession("workout-a");
     const completed = await sessionService.completeSession(activeSession.session.id);
 
     expect(completed.session.status).toBe("completed");
@@ -38,11 +18,11 @@ describe("finishing a session with no logged sets", () => {
   });
 
   it("completes a session with only some exercises logged", async () => {
-    const database = await prepareDatabase();
-    const [template] = await createWorkoutRepository(database).listTemplateWorkouts();
-    const sessionService = createSessionServiceForDatabase(database);
-    const setLogService = createSetLogServiceForDatabase(database);
-    const activeSession = await sessionService.startWorkoutSession(template.id, "local-user");
+    const client = createFakeSupabaseClient(baseSeed(), TEST_USER_ID);
+    const sessionService = createSessionService(client);
+    const setLogService = createSetLogService(client);
+
+    const activeSession = await sessionService.startWorkoutSession("workout-a");
     const firstExercise = activeSession.exercises[0];
 
     await setLogService.logSet({

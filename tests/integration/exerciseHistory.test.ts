@@ -1,38 +1,18 @@
-import { createProfileServiceForDatabase } from "@/features/profile/profileService";
-import { createProgressServiceForDatabase } from "@/features/progress/progressService";
-import { createSessionServiceForDatabase } from "@/features/sessions/sessionService";
-import { createSetLogServiceForDatabase } from "@/features/sessions/setLogService";
-import { loadSeedData } from "@/db/seed/loadSeedData";
-import { createWorkoutRepository } from "@/db/repositories/workoutRepository";
+import { createProgressService } from "@/features/progress/progressService";
+import { createSessionService } from "@/features/sessions/sessionService";
+import { createSetLogService } from "@/features/sessions/setLogService";
 
-import { TestDatabase } from "../helpers/testDatabase";
-
-async function prepareDatabase() {
-  const database = new TestDatabase();
-
-  await loadSeedData(database);
-  await createProfileServiceForDatabase(database).saveProfileInput({
-    id: "local-user",
-    name: "Alex",
-    bodyweight: 75,
-    height: null,
-    weightUnit: "kg",
-    experienceLevel: "new",
-    goal: "Build consistency"
-  });
-
-  return database;
-}
+import { createFakeSupabaseClient } from "../helpers/fakeSupabase";
+import { baseSeed, TEST_USER_ID } from "../helpers/seedFixture";
 
 describe("exercise history progress query", () => {
   it("returns completed set history, session volume, and weight points for an exercise", async () => {
-    const database = await prepareDatabase();
-    const [template] = await createWorkoutRepository(database).listTemplateWorkouts();
-    const sessionService = createSessionServiceForDatabase(database);
-    const setLogService = createSetLogServiceForDatabase(database);
+    const client = createFakeSupabaseClient(baseSeed(), TEST_USER_ID);
+    const sessionService = createSessionService(client);
+    const setLogService = createSetLogService(client);
 
     for (const completedAt of ["2026-07-06T10:00:00.000Z", "2026-07-08T10:00:00.000Z"]) {
-      const activeSession = await sessionService.startWorkoutSession(template.id, "local-user");
+      const activeSession = await sessionService.startWorkoutSession("workout-a");
       const squat = activeSession.exercises.find((exercise) => exercise.exerciseId === "bodyweight-squat");
 
       if (!squat) {
@@ -46,10 +26,10 @@ describe("exercise history progress query", () => {
         weight: 20,
         completedAt
       });
-      await sessionService.completeSession(activeSession.session.id);
+      await sessionService.completeSession(activeSession.session.id, { endedAt: completedAt });
     }
 
-    const progress = await createProgressServiceForDatabase(database).getExerciseProgress("bodyweight-squat");
+    const progress = await createProgressService(client).getExerciseProgress("bodyweight-squat");
 
     expect(progress.exercise?.name).toBe("Bodyweight Squat");
     expect(progress.historySets).toHaveLength(2);

@@ -1,16 +1,14 @@
-import type { DatabaseAdapter } from "@/db/client";
-import { createExerciseRepository } from "@/db/repositories/exerciseRepository";
-import { createSessionRepository } from "@/db/repositories/sessionRepository";
-import { createWorkoutRepository } from "@/db/repositories/workoutRepository";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { createExerciseLibraryService } from "@/features/exercises/exerciseLibraryService";
+import { createWorkoutRepository } from "@/features/workouts/workoutRepository";
+import { requireUserId } from "@/lib/currentUser";
+import { supabase } from "@/lib/supabase";
 import type { Exercise } from "@/models/exercise";
 import type { SetLog, WorkoutSession } from "@/models/session";
 import type { WorkoutExercise, WorkoutWithExercises } from "@/models/workout";
 
-const LOCAL_USER_ID = "local-user";
-
-export type SessionRepository = ReturnType<typeof createSessionRepository>;
-export type SessionWorkoutRepository = ReturnType<typeof createWorkoutRepository>;
-export type SessionExerciseRepository = ReturnType<typeof createExerciseRepository>;
+import { createSessionRepository } from "./sessionRepository";
 
 export type ActiveSessionExercise = WorkoutExercise & {
   exerciseName: string;
@@ -27,9 +25,9 @@ export type ActiveSessionDetails = {
 
 export type SessionService = {
   getSessionDetails(sessionId: string): Promise<ActiveSessionDetails>;
-  getActiveSession(userId?: string): Promise<ActiveSessionDetails | null>;
-  resumeActiveSession(userId?: string): Promise<ActiveSessionDetails | null>;
-  startWorkoutSession(workoutId: string, userId?: string): Promise<ActiveSessionDetails>;
+  getActiveSession(): Promise<ActiveSessionDetails | null>;
+  resumeActiveSession(): Promise<ActiveSessionDetails | null>;
+  startWorkoutSession(workoutId: string): Promise<ActiveSessionDetails>;
   completeSession(
     sessionId: string,
     options?: { rating?: number | null; endedAt?: string }
@@ -41,44 +39,41 @@ function countLoggedSets(setLogs: SetLog[], workoutExerciseId: string): number {
   return setLogs.filter((setLog) => setLog.workoutExerciseId === workoutExerciseId).length;
 }
 
-async function hydrateSessionDetails(
-  session: WorkoutSession,
-  workoutRepository: SessionWorkoutRepository,
-  exerciseRepository: SessionExerciseRepository,
-  sessionRepository: SessionRepository
-): Promise<ActiveSessionDetails> {
-  const workout = await workoutRepository.getWorkoutWithExercises(session.workoutId);
+export function createSessionService(client: SupabaseClient): SessionService {
+  const sessionRepository = createSessionRepository(client);
+  const workoutRepository = createWorkoutRepository(client);
+  const exerciseLibraryService = createExerciseLibraryService(client);
 
-  if (!workout) {
-    throw new Error(`Workout ${session.workoutId} was not found for the active session.`);
+  async function hydrateSessionDetails(session: WorkoutSession): Promise<ActiveSessionDetails> {
+    const workout = await workoutRepository.getWorkoutWithExercises(session.workoutId);
+
+    if (!workout) {
+      throw new Error(`Workout ${session.workoutId} was not found for the active session.`);
+    }
+
+    const setLogs = await sessionRepository.listSetLogs(session.id);
+    const exerciseRows = await Promise.all(
+      workout.exercises.map((workoutExercise) => exerciseLibraryService.getExerciseById(workoutExercise.exerciseId))
+    );
+    const exercisesById = new Map<string, Exercise>(
+      exerciseRows
+        .filter((exercise): exercise is Exercise => exercise !== null)
+        .map((exercise) => [exercise.id, exercise])
+    );
+
+    return {
+      session,
+      workout,
+      setLogs,
+      exercises: workout.exercises.map((workoutExercise) => ({
+        ...workoutExercise,
+        exerciseName: exercisesById.get(workoutExercise.exerciseId)?.name ?? workoutExercise.exerciseId,
+        loggedSetCount: countLoggedSets(setLogs, workoutExercise.id),
+        isBodyweight: exercisesById.get(workoutExercise.exerciseId)?.equipment === "bodyweight"
+      }))
+    };
   }
 
-  const setLogs = await sessionRepository.listSetLogs(session.id);
-  const exerciseRows = await Promise.all(
-    workout.exercises.map((workoutExercise) => exerciseRepository.getExerciseById(workoutExercise.exerciseId))
-  );
-  const exercisesById = new Map<string, Exercise>(
-    exerciseRows.filter((exercise): exercise is Exercise => exercise !== null).map((exercise) => [exercise.id, exercise])
-  );
-
-  return {
-    session,
-    workout,
-    setLogs,
-    exercises: workout.exercises.map((workoutExercise) => ({
-      ...workoutExercise,
-      exerciseName: exercisesById.get(workoutExercise.exerciseId)?.name ?? workoutExercise.exerciseId,
-      loggedSetCount: countLoggedSets(setLogs, workoutExercise.id),
-      isBodyweight: exercisesById.get(workoutExercise.exerciseId)?.equipment === "bodyweight"
-    }))
-  };
-}
-
-export function createSessionService(
-  sessionRepository: SessionRepository,
-  workoutRepository: SessionWorkoutRepository,
-  exerciseRepository: SessionExerciseRepository
-): SessionService {
   return {
     async getSessionDetails(sessionId) {
       const session = await sessionRepository.getSessionById(sessionId);
@@ -87,24 +82,26 @@ export function createSessionService(
         throw new Error(`Session ${sessionId} was not found.`);
       }
 
-      return hydrateSessionDetails(session, workoutRepository, exerciseRepository, sessionRepository);
+      return hydrateSessionDetails(session);
     },
 
-    async getActiveSession(userId = LOCAL_USER_ID) {
+    async getActiveSession() {
+      const userId = await requireUserId(client);
       const activeSession = await sessionRepository.getActiveSession(userId);
 
       if (!activeSession) {
         return null;
       }
 
-      return hydrateSessionDetails(activeSession, workoutRepository, exerciseRepository, sessionRepository);
+      return hydrateSessionDetails(activeSession);
     },
 
-    resumeActiveSession(userId = LOCAL_USER_ID) {
-      return this.getActiveSession(userId);
+    resumeActiveSession() {
+      return this.getActiveSession();
     },
 
-    async startWorkoutSession(workoutId, userId = LOCAL_USER_ID) {
+    async startWorkoutSession(workoutId) {
+      const userId = await requireUserId(client);
       const existingSession = await sessionRepository.getActiveSession(userId);
 
       if (existingSession) {
@@ -127,7 +124,7 @@ export function createSessionService(
         workoutNameSnapshot: workout.name
       });
 
-      return hydrateSessionDetails(session, workoutRepository, exerciseRepository, sessionRepository);
+      return hydrateSessionDetails(session);
     },
 
     async completeSession(sessionId, options = {}) {
@@ -165,43 +162,4 @@ export function createSessionService(
   };
 }
 
-export function createSessionServiceForDatabase(database: DatabaseAdapter): SessionService {
-  return createSessionService(
-    createSessionRepository(database),
-    createWorkoutRepository(database),
-    createExerciseRepository(database)
-  );
-}
-
-async function createRuntimeSessionService(): Promise<SessionService> {
-  const { getReadyDatabaseClient } = await import("@/db/client");
-  const { adapter } = await getReadyDatabaseClient();
-
-  return createSessionServiceForDatabase(adapter);
-}
-
-export const sessionService: SessionService = {
-  async getSessionDetails(sessionId) {
-    return (await createRuntimeSessionService()).getSessionDetails(sessionId);
-  },
-
-  async getActiveSession(userId) {
-    return (await createRuntimeSessionService()).getActiveSession(userId);
-  },
-
-  async resumeActiveSession(userId) {
-    return (await createRuntimeSessionService()).resumeActiveSession(userId);
-  },
-
-  async startWorkoutSession(workoutId, userId) {
-    return (await createRuntimeSessionService()).startWorkoutSession(workoutId, userId);
-  },
-
-  async completeSession(sessionId, options) {
-    return (await createRuntimeSessionService()).completeSession(sessionId, options);
-  },
-
-  async discardSession(sessionId) {
-    return (await createRuntimeSessionService()).discardSession(sessionId);
-  }
-};
+export const sessionService: SessionService = createSessionService(supabase);

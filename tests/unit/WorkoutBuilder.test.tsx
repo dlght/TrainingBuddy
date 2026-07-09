@@ -174,6 +174,6 @@ describe("WorkoutBuilder screen", () => {
         }
       ]
     });
-    expect(mockReplace).toHaveBeenCalledWith("/workouts/workout-created");
+    expect(mockReplace).toHaveBeenCalledWith("/");
   });
 });

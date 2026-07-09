@@ -1,5 +1,8 @@
-import type { DatabaseAdapter } from "@/db/client";
-import { createWorkoutRepository } from "@/db/repositories/workoutRepository";
+import type { SupabaseClient } from "@supabase/supabase-js";
+
+import { supabase } from "@/lib/supabase";
+
+import { createWorkoutRepository } from "./workoutRepository";
 
 export type SuggestedWorkout = {
   id: string;
@@ -11,8 +14,8 @@ export type WorkoutRecommendationService = {
   getSuggestedWorkouts(): Promise<SuggestedWorkout[]>;
 };
 
-export function createWorkoutRecommendationService(database: DatabaseAdapter): WorkoutRecommendationService {
-  const workoutRepository = createWorkoutRepository(database);
+export function createWorkoutRecommendationService(client: SupabaseClient): WorkoutRecommendationService {
+  const workoutRepository = createWorkoutRepository(client);
 
   return {
     async getSuggestedWorkouts(): Promise<SuggestedWorkout[]> {
@@ -79,15 +82,5 @@ export function createWorkoutRecommendationService(database: DatabaseAdapter): W
   };
 }
 
-export async function createRuntimeWorkoutRecommendationService(): Promise<WorkoutRecommendationService> {
-  const { getReadyDatabaseClient } = await import("@/db/client");
-  const { adapter } = await getReadyDatabaseClient();
-
-  return createWorkoutRecommendationService(adapter);
-}
-
-export const workoutRecommendationService: WorkoutRecommendationService = {
-  async getSuggestedWorkouts() {
-    return (await createRuntimeWorkoutRecommendationService()).getSuggestedWorkouts();
-  }
-};
+export const workoutRecommendationService: WorkoutRecommendationService =
+  createWorkoutRecommendationService(supabase);
