@@ -4,7 +4,7 @@
 
 **Created**: 2026-07-08
 
-**Status**: Draft
+**Status**: Delivered
 
 **Input**: User description: "1. rest timer should start when i log session -> start immediately predefined rest and i can skip with a single button if i want. 2. workout templates give me the opportunity to edit them to add exact reps and weight so i can just click - mark the set as completed and when competing the sets i put in the workout i edited it moves to the next exercise and dont wait me to click next. i want it to be flow -> complete set -> rest -> complete set -> rest / skip rest -> complete exercise - moves to next exercise 1st set -> complete set -> rest -> when i complete the last set of the last exercise -> complete the workout (i still have to be able to complete or stop at any time with buttons). 3. if i mark workout as favourite i want it to pop on my dashboard replacing the basic 3 workouts. the 3 templates should be able to be started with some default values for reps and weight. 4. the reps input is too large for free body exercises - make it the same as for the other."
 

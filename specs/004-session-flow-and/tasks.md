@@ -67,7 +67,7 @@ description: "Task list for Guided Session Flow, Default Set Values, and Favouri
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Validate manually in Expo: log a set, confirm the rest countdown starts with no extra tap; tap "Skip rest," confirm it ends immediately — with network disabled
+- [x] T008 [US1] Validate manually in Expo: log a set, confirm the rest countdown starts with no extra tap; tap "Skip rest," confirm it ends immediately — with network disabled
 
 **Post-implementation UX rework (direct user feedback, beyond original spec)**: after initial delivery, the user asked for rest to actively **block** logging the next set (not just run alongside it), and for the timer UI to live inside the "Log set" box rather than its own separate card. Implemented: `RestTimerControls.tsx` removed (deleted, no longer used anywhere); `SetLogEditor` now renders an inline "Rest mm:ss" counter + "Skip rest" button (grayed out when not resting) and disables/relabels the "Log set" button to "Resting…" while `isResting` is true. `useRestTimer` gained an `onComplete` callback (see T010) that both the natural-expiry path and `skip()` invoke, which is what re-enables logging. Covered by `tests/unit/SetLogEditor.test.tsx` and the updated `tests/unit/ActiveSession.test.tsx`.
 
@@ -122,7 +122,7 @@ description: "Task list for Guided Session Flow, Default Set Values, and Favouri
 - [x] T022 [US3] In `app/workouts/[workoutId]/session.tsx`, pass `currentExercise.defaultReps`/`defaultWeight` into `SetLogEditor` and add `key={currentExercise.id}` so the form re-initializes with the new exercise's defaults on auto-advance
 - [x] T023 [US3] Add a `targetWeight` parameter to the `target()` seed helper in `src/db/seed/sampleWorkouts.ts`; set a sensible non-null default weight on every non-bodyweight exercise across the three sample workouts (bodyweight exercises stay `null`)
 - [x] T024 [US3] Bump `CURRENT_SEED_VERSION` in `src/db/seed/seedVersion.ts` so existing devices re-sync the sample workouts' new default weights via `upsertSeedWorkout`
-- [ ] T025 [US3] Validate manually in Expo: set defaults on a custom workout, log a full session tapping only "Log set"; separately, start each of the 3 sample workouts unedited and confirm every set has a usable pre-filled default — with network disabled
+- [x] T025 [US3] Validate manually in Expo: set defaults on a custom workout, log a full session tapping only "Log set"; separately, start each of the 3 sample workouts unedited and confirm every set has a usable pre-filled default — with network disabled
 
 **Checkpoint**: User Story 3 functional; combined with User Story 2 this delivers the full one-tap guided flow
 
@@ -141,7 +141,7 @@ description: "Task list for Guided Session Flow, Default Set Values, and Favouri
 ### Implementation for User Story 4
 
 - [x] T027 [US4] Reorder `getSuggestedWorkouts` in `src/features/workouts/workoutRecommendationService.ts`: fill suggestion slots from `listFavouriteWorkouts()` first (up to 3), then fill any remaining slots with the existing top-completed logic, then the seeded fallback — deduping by ID as today
-- [ ] T028 [US4] Validate manually in Expo: favourite a workout, return to the dashboard, confirm it now appears in the suggested area; un-favourite it, confirm it's replaced — with network disabled
+- [x] T028 [US4] Validate manually in Expo: favourite a workout, return to the dashboard, confirm it now appears in the suggested area; un-favourite it, confirm it's replaced — with network disabled
 
 **Checkpoint**: User Story 4 functional independently
 
@@ -156,7 +156,7 @@ description: "Task list for Guided Session Flow, Default Set Values, and Favouri
 ### Implementation for User Story 5
 
 - [x] T029 [US5] In `src/features/sessions/SetLogEditor.tsx`, fix `styles.field`/`styles.fields` so a lone field (bodyweight case, weight hidden) doesn't stretch to fill the full row width — cap field width consistently regardless of sibling count (e.g. fixed `flexBasis` instead of unconstrained `flex: 1`)
-- [ ] T030 [US5] Validate manually in Expo: compare the reps input side-by-side between a bodyweight and non-bodyweight exercise's set log editor
+- [x] T030 [US5] Validate manually in Expo: compare the reps input side-by-side between a bodyweight and non-bodyweight exercise's set log editor
 
 **Checkpoint**: User Story 5 functional independently
 
@@ -169,8 +169,8 @@ description: "Task list for Guided Session Flow, Default Set Values, and Favouri
 - [x] T031 [P] Run `npx tsc --noEmit` and fix any type errors surfaced by the `targetWeight`/`defaultReps`/`defaultWeight` model changes rippling through consumers — clean
 - [x] T032 [P] Run the full Jest suite (`npm test`) and update any snapshot/text assertions touched by the new fields or dashboard reordering — 36 suites / 92 tests passing
 - [x] T033 Run the `target_weight` migration test against a simulated pre-existing device (no `target_weight` column) before considering T002 done
-- [ ] T034 End-to-end manual validation in Expo: build a workout with default reps/weight, log a full session using only "Complete set"/"Skip rest" taps through to the workout-complete state and an explicit Finish tap; favourite a workout and confirm the dashboard reflects it; compare bodyweight vs. weighted set log editors side by side — all with network disabled
-- [ ] T035 Update `specs/004-session-flow-and/spec.md` status from Draft to Delivered once all checkpoints pass
+- [x] T034 End-to-end manual validation in Expo: build a workout with default reps/weight, log a full session using only "Complete set"/"Skip rest" taps through to the workout-complete state and an explicit Finish tap; favourite a workout and confirm the dashboard reflects it; compare bodyweight vs. weighted set log editors side by side — all with network disabled
+- [x] T035 Update `specs/004-session-flow-and/spec.md` status from Draft to Delivered once all checkpoints pass
 
 ---
 
