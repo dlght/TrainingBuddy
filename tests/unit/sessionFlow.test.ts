@@ -1,4 +1,4 @@
-import { isSessionFullyLogged, resolveNextSessionStep } from "@/features/sessions/sessionFlow";
+import { getPlannedSetValues, isSessionFullyLogged, resolveNextSessionStep } from "@/features/sessions/sessionFlow";
 
 describe("resolveNextSessionStep", () => {
   it("stays on the same exercise when its target sets are not yet met", () => {
@@ -71,5 +71,28 @@ describe("isSessionFullyLogged", () => {
     ];
 
     expect(isSessionFullyLogged(exercises)).toBe(true);
+  });
+});
+
+describe("getPlannedSetValues", () => {
+  const setPlans = [
+    { setNumber: 1, reps: 10, weight: 15 },
+    { setNumber: 2, reps: 12, weight: 12 },
+    { setNumber: 3, reps: 12, weight: null }
+  ];
+
+  it("returns the plan for the next unlogged set (1-indexed by loggedSetCount + 1)", () => {
+    expect(getPlannedSetValues(setPlans, 0)).toEqual({ reps: 10, weight: 15 });
+    expect(getPlannedSetValues(setPlans, 1)).toEqual({ reps: 12, weight: 12 });
+    expect(getPlannedSetValues(setPlans, 2)).toEqual({ reps: 12, weight: null });
+  });
+
+  it("returns null once every planned set has been logged", () => {
+    expect(getPlannedSetValues(setPlans, 3)).toBeNull();
+  });
+
+  it("returns null for an empty or missing plan (older workout, no per-set data)", () => {
+    expect(getPlannedSetValues([], 0)).toBeNull();
+    expect(getPlannedSetValues(undefined, 0)).toBeNull();
   });
 });

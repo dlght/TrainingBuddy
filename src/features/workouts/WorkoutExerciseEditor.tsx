@@ -2,20 +2,27 @@ import { Ionicons } from "@expo/vector-icons";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { theme } from "@/components/theme";
+import { createLocalId } from "@/utils/ids";
 
-import { SupersetGroupControl } from "./SupersetGroupControl";
 import { ExerciseLabel } from "@/components/ExerciseLabel";
+
+export type WorkoutExerciseSetPlanValue = {
+  key: string;
+  reps: string;
+  weight: string;
+};
 
 export type WorkoutExerciseEditorValue = {
   key: string;
   exerciseId: string;
   exerciseName: string;
-  targetSets: string;
-  targetReps: string;
   targetRestSeconds: string;
-  targetWeight: string;
-  supersetGroupId: string | null;
+  setPlans: WorkoutExerciseSetPlanValue[];
 };
+
+export function createSetPlanValue(reps = "10", weight = ""): WorkoutExerciseSetPlanValue {
+  return { key: createLocalId("set_plan_row"), reps, weight };
+}
 
 type WorkoutExerciseEditorProps = {
   exercise: WorkoutExerciseEditorValue;
@@ -42,13 +49,30 @@ export function WorkoutExerciseEditor({
   onMoveUp,
   onMoveDown
 }: WorkoutExerciseEditorProps) {
-  const setField = (
-    field: keyof Pick<WorkoutExerciseEditorValue, "targetSets" | "targetReps" | "targetWeight" | "supersetGroupId">,
-    value: string | null
-  ) => {
+  const updateSetPlan = (setIndex: number, field: "reps" | "weight", value: string) => {
     onChange({
       ...exercise,
-      [field]: value
+      setPlans: exercise.setPlans.map((plan, i) => (i === setIndex ? { ...plan, [field]: value } : plan))
+    });
+  };
+
+  const addSetPlan = () => {
+    const last = exercise.setPlans[exercise.setPlans.length - 1];
+
+    onChange({
+      ...exercise,
+      setPlans: [...exercise.setPlans, createSetPlanValue(last?.reps, last?.weight)]
+    });
+  };
+
+  const removeSetPlan = (setIndex: number) => {
+    if (exercise.setPlans.length <= 1) {
+      return;
+    }
+
+    onChange({
+      ...exercise,
+      setPlans: exercise.setPlans.filter((_, i) => i !== setIndex)
     });
   };
 
@@ -64,28 +88,40 @@ export function WorkoutExerciseEditor({
         </Pressable>
       </View>
 
-      <View style={styles.fields}>
-        <TargetInput
-          accessibilityLabel={`Sets for ${exercise.exerciseName}`}
-          label="Sets"
-          value={exercise.targetSets}
-          onChangeText={(value) => setField("targetSets", value)}
-        />
-        <TargetInput
-          accessibilityLabel={`Reps for ${exercise.exerciseName}`}
-          label="Reps"
-          value={exercise.targetReps}
-          onChangeText={(value) => setField("targetReps", value)}
-        />
-        {isBodyweight ? null : (
-          <TargetInput
-            accessibilityLabel={`Default weight for ${exercise.exerciseName}`}
-            keyboardType="decimal-pad"
-            label="Weight"
-            value={exercise.targetWeight}
-            onChangeText={(value) => setField("targetWeight", value)}
-          />
-        )}
+      <View style={styles.setPlanList}>
+        {exercise.setPlans.map((plan, setIndex) => (
+          <View key={plan.key} style={styles.setPlanRow}>
+            <Text style={styles.setPlanLabel}>Set {setIndex + 1}</Text>
+            <TargetInput
+              accessibilityLabel={`Reps for ${exercise.exerciseName} set ${setIndex + 1}`}
+              label="Reps"
+              value={plan.reps}
+              onChangeText={(value) => updateSetPlan(setIndex, "reps", value)}
+            />
+            {isBodyweight ? null : (
+              <TargetInput
+                accessibilityLabel={`Weight for ${exercise.exerciseName} set ${setIndex + 1}`}
+                keyboardType="decimal-pad"
+                label="Weight"
+                value={plan.weight}
+                onChangeText={(value) => updateSetPlan(setIndex, "weight", value)}
+              />
+            )}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Remove set ${setIndex + 1}`}
+              disabled={exercise.setPlans.length <= 1}
+              onPress={() => removeSetPlan(setIndex)}
+              style={[styles.iconButton, exercise.setPlans.length <= 1 ? styles.disabled : null]}
+            >
+              <Ionicons color={theme.colors.muted} name="close" size={18} />
+            </Pressable>
+          </View>
+        ))}
+        <Pressable accessibilityRole="button" accessibilityLabel="Add set" onPress={addSetPlan} style={styles.addSetButton}>
+          <Ionicons color={theme.colors.primary} name="add" size={18} />
+          <Text style={styles.addSetButtonText}>Add set</Text>
+        </Pressable>
       </View>
 
       <View style={styles.controls}>
@@ -107,12 +143,6 @@ export function WorkoutExerciseEditor({
         >
           <Ionicons color={theme.colors.text} name="arrow-down" size={20} />
         </Pressable>
-        <SupersetGroupControl
-          isInSuperset={exercise.supersetGroupId === "superset-a"}
-          onToggle={() =>
-            setField("supersetGroupId", exercise.supersetGroupId === "superset-a" ? null : "superset-a")
-          }
-        />
       </View>
 
       {errors.map((error) => (
@@ -189,13 +219,23 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "800"
   },
-  fields: {
-    flexDirection: "row",
-    flexWrap: "wrap",
+  setPlanList: {
     gap: theme.spacing.sm
   },
+  setPlanRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: theme.spacing.sm
+  },
+  setPlanLabel: {
+    minWidth: 44,
+    color: theme.colors.muted,
+    fontSize: 13,
+    fontWeight: "700",
+    paddingBottom: 12
+  },
   field: {
-    minWidth: 90,
+    minWidth: 72,
     flex: 1,
     gap: theme.spacing.xs
   },
@@ -212,6 +252,23 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: 16,
     paddingHorizontal: theme.spacing.sm
+  },
+  addSetButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: theme.spacing.xs,
+    minHeight: 40,
+    borderRadius: theme.radius.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+    alignSelf: "flex-start",
+    paddingHorizontal: theme.spacing.md
+  },
+  addSetButtonText: {
+    color: theme.colors.primary,
+    fontSize: 14,
+    fontWeight: "800"
   },
   controls: {
     flexDirection: "row",

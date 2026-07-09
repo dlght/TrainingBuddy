@@ -4,14 +4,15 @@ import {
 } from "@/features/workouts/workoutValidation";
 
 describe("workout validation", () => {
-  it("accepts target values and normalizes numeric fields", () => {
+  it("accepts a uniform per-set plan and derives sets/rep-range/weight summaries", () => {
     const result = validateWorkoutExerciseTarget({
       exerciseId: " bodyweight-squat ",
-      targetSets: "3",
-      targetRepRangeLow: "8",
-      targetRepRangeHigh: "12",
       targetRestSeconds: "60",
-      supersetGroupId: " superset-a "
+      setPlans: [
+        { reps: "8", weight: "" },
+        { reps: "8", weight: "" },
+        { reps: "8", weight: "" }
+      ]
     });
 
     expect(result).toEqual({
@@ -20,49 +21,74 @@ describe("workout validation", () => {
         exerciseId: "bodyweight-squat",
         targetSets: 3,
         targetRepRangeLow: 8,
-        targetRepRangeHigh: 12,
+        targetRepRangeHigh: 8,
         targetRestSeconds: 60,
         targetWeight: null,
-        supersetGroupId: "superset-a"
+        supersetGroupId: null,
+        setPlans: [
+          { setNumber: 1, reps: 8, weight: null },
+          { setNumber: 2, reps: 8, weight: null },
+          { setNumber: 3, reps: 8, weight: null }
+        ]
       }
     });
   });
 
-  it("accepts an optional target weight and rejects a negative one", () => {
-    const withWeight = validateWorkoutExerciseTarget({
+  it("accepts a non-uniform per-set plan, deriving the rep range and using the first set's weight as the summary", () => {
+    const result = validateWorkoutExerciseTarget({
       exerciseId: "barbell-squat",
-      targetSets: "3",
-      targetRepRangeLow: "8",
-      targetRepRangeHigh: "12",
       targetRestSeconds: "60",
-      targetWeight: "42.5"
+      setPlans: [
+        { reps: "10", weight: "15" },
+        { reps: "12", weight: "12" }
+      ]
     });
 
-    expect(withWeight.errors.targetWeight).toBeUndefined();
-    expect(withWeight.value?.targetWeight).toBe(42.5);
+    expect(result.errors).toEqual({});
+    expect(result.value).toMatchObject({
+      targetSets: 2,
+      targetRepRangeLow: 10,
+      targetRepRangeHigh: 12,
+      targetWeight: 15,
+      setPlans: [
+        { setNumber: 1, reps: 10, weight: 15 },
+        { setNumber: 2, reps: 12, weight: 12 }
+      ]
+    });
+  });
 
-    const blankWeight = validateWorkoutExerciseTarget({
+  it("rejects a negative weight on any set", () => {
+    const result = validateWorkoutExerciseTarget({
       exerciseId: "barbell-squat",
-      targetSets: "3",
-      targetRepRangeLow: "8",
-      targetRepRangeHigh: "12",
       targetRestSeconds: "60",
-      targetWeight: ""
+      setPlans: [
+        { reps: "10", weight: "15" },
+        { reps: "10", weight: "-5" }
+      ]
     });
 
-    expect(blankWeight.errors.targetWeight).toBeUndefined();
-    expect(blankWeight.value?.targetWeight).toBeNull();
+    expect(result.errors.setPlans).toBe("Each set needs reps above 0 and a weight of 0 or more.");
+    expect(result.value).toBeUndefined();
+  });
 
-    const negativeWeight = validateWorkoutExerciseTarget({
+  it("rejects zero reps on any set", () => {
+    const result = validateWorkoutExerciseTarget({
       exerciseId: "barbell-squat",
-      targetSets: "3",
-      targetRepRangeLow: "8",
-      targetRepRangeHigh: "12",
       targetRestSeconds: "60",
-      targetWeight: "-5"
+      setPlans: [{ reps: "0", weight: null }]
     });
 
-    expect(negativeWeight.errors.targetWeight).toBe("Weight must be 0 or more.");
+    expect(result.errors.setPlans).toBe("Each set needs reps above 0 and a weight of 0 or more.");
+  });
+
+  it("requires at least one planned set", () => {
+    const result = validateWorkoutExerciseTarget({
+      exerciseId: "barbell-squat",
+      targetRestSeconds: "60",
+      setPlans: []
+    });
+
+    expect(result.errors.setPlans).toBe("Add at least one set.");
   });
 
   it("rejects empty workouts before they can be saved or started", () => {
@@ -81,11 +107,8 @@ describe("workout validation", () => {
       exercises: [
         {
           exerciseId: "bodyweight-squat",
-          targetSets: "0",
-          targetRepRangeLow: "12",
-          targetRepRangeHigh: "8",
           targetRestSeconds: "-1",
-          supersetGroupId: "superset-a"
+          setPlans: [{ reps: "0", weight: null }]
         }
       ]
     });
@@ -95,30 +118,10 @@ describe("workout validation", () => {
       name: "Name this workout.",
       exerciseTargets: {
         0: {
-          targetSets: "Sets must be a whole number above 0.",
-          targetRepRangeHigh: "Rep range end must be at least the start.",
+          setPlans: "Each set needs reps above 0 and a weight of 0 or more.",
           targetRestSeconds: "Rest must be 0 seconds or more."
         }
       }
     });
-  });
-
-  it("rejects single-exercise supersets", () => {
-    const result = validateWorkoutDraft({
-      name: "Starter Strength",
-      exercises: [
-        {
-          exerciseId: "bodyweight-squat",
-          targetSets: "2",
-          targetRepRangeLow: "8",
-          targetRepRangeHigh: "12",
-          targetRestSeconds: "60",
-          supersetGroupId: "superset-a"
-        }
-      ]
-    });
-
-    expect(result.isValid).toBe(false);
-    expect(result.errors.supersets).toBe("Supersets need at least two exercises in the same group.");
   });
 });

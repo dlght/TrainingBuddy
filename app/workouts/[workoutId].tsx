@@ -201,7 +201,6 @@ export default function WorkoutDetailScreen() {
                 <Text style={styles.exerciseMeta}>
                   {exercise.targetSets} sets - {exercise.targetRepRangeLow}-{exercise.targetRepRangeHigh} reps -{" "}
                   {exercise.targetRestSeconds}s rest
-                  {exercise.supersetGroupId ? ` - ${exercise.supersetGroupId}` : ""}
                 </Text>
               </View>
             ))}

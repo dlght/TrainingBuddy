@@ -42,7 +42,9 @@ jest.mock("@/features/sessions/sessionService", () => ({
           targetRepRangeLow: 8,
           targetRepRangeHigh: 12,
           targetRestSeconds: 60,
+          targetWeight: null,
           supersetGroupId: null,
+          setPlans: [{ id: "plan-1", workoutExerciseId: "we-1", setNumber: 1, reps: 8, weight: null }],
           exerciseName: "Bodyweight Squat",
           loggedSetCount: 0
         },
@@ -55,7 +57,9 @@ jest.mock("@/features/sessions/sessionService", () => ({
           targetRepRangeLow: 6,
           targetRepRangeHigh: 10,
           targetRestSeconds: 60,
+          targetWeight: 20,
           supersetGroupId: null,
+          setPlans: [{ id: "plan-2", workoutExerciseId: "we-2", setNumber: 1, reps: 6, weight: 20 }],
           exerciseName: "Incline Push-Up",
           loggedSetCount: 0
         }

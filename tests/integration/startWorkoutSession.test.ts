@@ -47,10 +47,8 @@ describe("starting workout sessions", () => {
         exercises: [
           {
             exerciseId: "bodyweight-squat",
-            targetSets: 1,
-            targetRepRangeLow: 8,
-            targetRepRangeHigh: 12,
-            targetRestSeconds: 60
+            targetRestSeconds: 60,
+            setPlans: [{ reps: 10, weight: null }]
           }
         ]
       },

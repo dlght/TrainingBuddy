@@ -1,5 +1,5 @@
-import { useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ErrorState } from "@/components/ErrorState";
@@ -74,45 +74,49 @@ export default function HomeScreen() {
     };
   }, [router]);
 
-  useEffect(() => {
-    let mounted = true;
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
 
-    async function loadSuggestions() {
-      try {
-        const suggestions = await workoutRecommendationService.getSuggestedWorkouts();
-        if (mounted) setSuggestedWorkouts(suggestions);
-      } catch (error) {
-        console.error("Suggested workouts could not be loaded.", error);
-        if (mounted) setSuggestedWorkouts([]);
+      async function loadSuggestions() {
+        try {
+          const suggestions = await workoutRecommendationService.getSuggestedWorkouts();
+          if (mounted) setSuggestedWorkouts(suggestions);
+        } catch (error) {
+          console.error("Suggested workouts could not be loaded.", error);
+          if (mounted) setSuggestedWorkouts([]);
+        }
       }
-    }
 
-    void loadSuggestions();
+      void loadSuggestions();
 
-    return () => {
-      mounted = false;
-    };
-  }, []);
+      return () => {
+        mounted = false;
+      };
+    }, [])
+  );
 
-  useEffect(() => {
-    let mounted = true;
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
 
-    async function loadDashboardStats() {
-      try {
-        const stats = await dashboardService.getWeeklyDashboardStats();
-        if (mounted) setDashboardStats(stats);
-      } catch (error) {
-        console.error("Dashboard stats could not be loaded.", error);
-        if (mounted) setDashboardStats({ days: [], consistencyPercent: 0 });
+      async function loadDashboardStats() {
+        try {
+          const stats = await dashboardService.getWeeklyDashboardStats();
+          if (mounted) setDashboardStats(stats);
+        } catch (error) {
+          console.error("Dashboard stats could not be loaded.", error);
+          if (mounted) setDashboardStats({ days: [], consistencyPercent: 0 });
+        }
       }
-    }
 
-    void loadDashboardStats();
+      void loadDashboardStats();
 
-    return () => {
-      mounted = false;
-    };
-  }, [activeSession]);
+      return () => {
+        mounted = false;
+      };
+    }, [activeSession])
+  );
 
   const discardActiveSession = async () => {
     if (!activeSession) {
@@ -255,7 +259,7 @@ export default function HomeScreen() {
           <Text style={styles.navIcon}>🏋️</Text>
           <Text style={styles.navLabel}>Workouts</Text>
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={() => router.push("/progress/placeholder")} style={styles.navItem}>
+        <Pressable accessibilityRole="button" onPress={() => router.push("/history")} style={styles.navItem}>
           <Text style={styles.navIcon}>📈</Text>
           <Text style={styles.navLabel}>Progress</Text>
         </Pressable>

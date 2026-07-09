@@ -27,6 +27,7 @@ export default function RootLayout() {
         <Stack.Screen name="workouts/[workoutId]" options={{ title: "Workout" }} />
         <Stack.Screen name="workouts/[workoutId]/session" options={{ title: "Session" }} />
         <Stack.Screen name="progress/[exerciseId]" options={{ title: "Progress" }} />
+        <Stack.Screen name="history/index" options={{ title: "History" }} />
       </Stack>
       <StatusBar style="auto" />
     </GestureHandlerRootView>

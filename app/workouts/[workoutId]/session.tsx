@@ -7,7 +7,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
 import { CurrentExercisePanel } from "@/features/sessions/CurrentExercisePanel";
-import { isSessionFullyLogged, resolveNextSessionStep } from "@/features/sessions/sessionFlow";
+import { getPlannedSetValues, isSessionFullyLogged, resolveNextSessionStep } from "@/features/sessions/sessionFlow";
 import { SetLogEditor, type SetLogEditorValues } from "@/features/sessions/SetLogEditor";
 import {
   sessionService,
@@ -141,6 +141,14 @@ export default function ActiveSessionScreen() {
     return sessionDetails.exercises[Math.min(currentExerciseIndex, sessionDetails.exercises.length - 1)];
   }, [currentExerciseIndex, sessionDetails]);
 
+  const currentSetPlan = useMemo(() => {
+    if (!currentExercise) {
+      return null;
+    }
+
+    return getPlannedSetValues(currentExercise.setPlans, currentExercise.loggedSetCount);
+  }, [currentExercise]);
+
   const logSet = async (values: SetLogEditorValues) => {
     if (!sessionDetails || !currentExercise) {
       return;
@@ -266,13 +274,13 @@ export default function ActiveSessionScreen() {
           />
 
           <SetLogEditor
-            key={currentExercise.id}
+            key={`${currentExercise.id}-${currentExercise.loggedSetCount}`}
             isSaving={isSavingSet}
             isBodyweight={currentExercise.isBodyweight}
             isResting={restTimer.isRunning}
             restRemainingSeconds={restTimer.remainingSeconds}
-            defaultReps={currentExercise.defaultReps}
-            defaultWeight={currentExercise.defaultWeight}
+            defaultReps={currentSetPlan?.reps ?? null}
+            defaultWeight={currentSetPlan?.weight ?? null}
             onSkipRest={restTimer.skip}
             onSubmit={logSet}
           />
@@ -352,6 +360,7 @@ const styles = StyleSheet.create({
     lineHeight: 23
   },
   actions: {
+    flexDirection: "row",
     gap: theme.spacing.sm
   },
   completeCard: {
@@ -375,6 +384,7 @@ const styles = StyleSheet.create({
     textAlign: "center"
   },
   primaryButton: {
+    flex: 1,
     minHeight: 50,
     alignItems: "center",
     justifyContent: "center",
@@ -388,7 +398,8 @@ const styles = StyleSheet.create({
     fontWeight: "800"
   },
   dangerButton: {
-    minHeight: 44,
+    flex: 1,
+    minHeight: 50,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: theme.radius.sm,

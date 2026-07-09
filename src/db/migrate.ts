@@ -1,4 +1,5 @@
 import type { DatabaseAdapter } from "./client";
+import { createLocalId } from "../utils/ids";
 
 export const initialMigrationSql = `
 PRAGMA foreign_keys = ON;
@@ -67,6 +68,17 @@ CREATE TABLE IF NOT EXISTS workout_exercises (
 
 CREATE INDEX IF NOT EXISTS workout_exercises_workout_idx ON workout_exercises(workout_id);
 CREATE INDEX IF NOT EXISTS workout_exercises_exercise_idx ON workout_exercises(exercise_id);
+
+CREATE TABLE IF NOT EXISTS workout_exercise_set_plans (
+  id TEXT PRIMARY KEY,
+  workout_exercise_id TEXT NOT NULL REFERENCES workout_exercises(id) ON DELETE CASCADE,
+  set_number INTEGER NOT NULL CHECK (set_number > 0),
+  reps INTEGER NOT NULL CHECK (reps > 0),
+  weight REAL CHECK (weight IS NULL OR weight >= 0),
+  UNIQUE (workout_exercise_id, set_number)
+);
+
+CREATE INDEX IF NOT EXISTS workout_exercise_set_plans_workout_exercise_idx ON workout_exercise_set_plans(workout_exercise_id);
 
 CREATE TABLE IF NOT EXISTS workout_sessions (
   id TEXT PRIMARY KEY,
@@ -207,6 +219,61 @@ export async function ensureWorkoutExerciseTargetWeight(database: DatabaseAdapte
   }
 }
 
+/**
+ * Ensures workout_exercise_set_plans exists and every workout_exercises row has
+ * at least one plan row, regardless of what schema_migrations claims. Unlike the
+ * other ensure* functions above, there's no existing column to check — a brand
+ * new table is safe to CREATE TABLE IF NOT EXISTS on any device. What needs
+ * self-healing is the *data*: workout_exercises rows created before per-set
+ * plans existed (every pre-existing custom and sample workout) have zero plan
+ * rows, so they're backfilled here with one row per target_sets, each carrying
+ * the exercise's existing single reps/weight default — a "uniform" plan
+ * equivalent to today's behavior, with no data loss and no forced re-entry.
+ * The anti-join (LEFT JOIN ... WHERE plan.id IS NULL) makes this idempotent:
+ * once a workout_exercise has any plan rows (backfilled or explicitly saved by
+ * the builder), it's never touched again by this function.
+ */
+export async function ensureWorkoutExerciseSetPlans(database: DatabaseAdapter): Promise<void> {
+  await database.execAsync(`
+    CREATE TABLE IF NOT EXISTS workout_exercise_set_plans (
+      id TEXT PRIMARY KEY,
+      workout_exercise_id TEXT NOT NULL REFERENCES workout_exercises(id) ON DELETE CASCADE,
+      set_number INTEGER NOT NULL CHECK (set_number > 0),
+      reps INTEGER NOT NULL CHECK (reps > 0),
+      weight REAL CHECK (weight IS NULL OR weight >= 0),
+      UNIQUE (workout_exercise_id, set_number)
+    );
+  `);
+  await database.execAsync(
+    "CREATE INDEX IF NOT EXISTS workout_exercise_set_plans_workout_exercise_idx ON workout_exercise_set_plans(workout_exercise_id);"
+  );
+
+  const unplanned = await database.getAllAsync<{
+    id: string;
+    targetSets: number;
+    targetRepRangeLow: number;
+    targetWeight: number | null;
+  }>(`
+    SELECT we.id as id,
+           we.target_sets as targetSets,
+           we.target_rep_range_low as targetRepRangeLow,
+           we.target_weight as targetWeight
+      FROM workout_exercises we
+      LEFT JOIN workout_exercise_set_plans p ON p.workout_exercise_id = we.id
+     WHERE p.id IS NULL
+     GROUP BY we.id
+  `);
+
+  for (const exercise of unplanned) {
+    for (let setNumber = 1; setNumber <= exercise.targetSets; setNumber += 1) {
+      await database.runAsync(
+        "INSERT INTO workout_exercise_set_plans (id, workout_exercise_id, set_number, reps, weight) VALUES (?, ?, ?, ?, ?)",
+        [createLocalId("set_plan"), exercise.id, setNumber, exercise.targetRepRangeLow, exercise.targetWeight]
+      );
+    }
+  }
+}
+
 export async function runInTransaction<T>(
   database: DatabaseAdapter,
   task: () => Promise<T>
@@ -260,4 +327,5 @@ export async function runMigrations(
   await ensureFavouriteColumn(database);
   await ensureNullableSetLogsWeight(database);
   await ensureWorkoutExerciseTargetWeight(database);
+  await ensureWorkoutExerciseSetPlans(database);
 }

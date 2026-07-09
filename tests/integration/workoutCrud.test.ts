@@ -16,24 +16,27 @@ describe("custom workout CRUD", () => {
         exercises: [
           {
             exerciseId: "bodyweight-squat",
-            targetSets: "2",
-            targetRepRangeLow: "8",
-            targetRepRangeHigh: "12",
-            targetRestSeconds: "60"
+            targetRestSeconds: "60",
+            setPlans: [
+              { reps: "8", weight: "" },
+              { reps: "12", weight: "" }
+            ]
           },
           {
             exerciseId: "incline-push-up",
-            targetSets: "2",
-            targetRepRangeLow: "6",
-            targetRepRangeHigh: "10",
-            targetRestSeconds: "60"
+            targetRestSeconds: "60",
+            setPlans: [
+              { reps: "6", weight: "" },
+              { reps: "10", weight: "" }
+            ]
           },
           {
             exerciseId: "one-arm-dumbbell-row",
-            targetSets: "2",
-            targetRepRangeLow: "8",
-            targetRepRangeHigh: "12",
-            targetRestSeconds: "60"
+            targetRestSeconds: "60",
+            setPlans: [
+              { reps: "8", weight: "" },
+              { reps: "12", weight: "" }
+            ]
           }
         ]
       },
@@ -61,19 +64,21 @@ describe("custom workout CRUD", () => {
       exercises: [
         {
           exerciseId: "incline-push-up",
-          targetSets: 3,
-          targetRepRangeLow: 8,
-          targetRepRangeHigh: 10,
           targetRestSeconds: 45,
-          supersetGroupId: "superset-a"
+          setPlans: [
+            { reps: 8, weight: null },
+            { reps: 10, weight: null },
+            { reps: 8, weight: null }
+          ]
         },
         {
           exerciseId: "one-arm-dumbbell-row",
-          targetSets: 3,
-          targetRepRangeLow: 8,
-          targetRepRangeHigh: 10,
           targetRestSeconds: 45,
-          supersetGroupId: "superset-a"
+          setPlans: [
+            { reps: 8, weight: null },
+            { reps: 10, weight: null },
+            { reps: 8, weight: null }
+          ]
         }
       ]
     });
@@ -81,7 +86,6 @@ describe("custom workout CRUD", () => {
     expect(updated.name).toBe("Starter Strength Updated");
     expect(updated.exercises).toHaveLength(2);
     expect(updated.exercises.map((exercise) => exercise.orderIndex)).toEqual([0, 1]);
-    expect(updated.exercises.every((exercise) => exercise.supersetGroupId === "superset-a")).toBe(true);
 
     await reloadedService.deleteCustomWorkout(created.id);
 

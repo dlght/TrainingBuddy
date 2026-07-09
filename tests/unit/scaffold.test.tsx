@@ -3,6 +3,7 @@ import { render } from "@testing-library/react-native";
 
 import ExerciseLibraryScreen from "../../app/exercises";
 import ExerciseDetailScreen from "../../app/exercises/[exerciseId]";
+import HistoryScreen from "../../app/history";
 import HomeScreen from "../../app/index";
 import ProgressScreen from "../../app/progress/[exerciseId]";
 import ProfileSetupScreen from "../../app/profile/setup";
@@ -19,7 +20,10 @@ jest.mock("expo-router", () => {
     __esModule: true,
     Link: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
     useRouter: () => ({ replace: jest.fn() }),
-    useLocalSearchParams: () => ({ exerciseId: "placeholder" })
+    useLocalSearchParams: () => ({ exerciseId: "placeholder" }),
+    useFocusEffect: (effect: () => void | (() => void)) => {
+      React.useEffect(() => effect(), []);
+    }
   };
 });
 
@@ -97,6 +101,12 @@ jest.mock("@/features/progress/progressService", () => ({
   }
 }));
 
+jest.mock("@/features/progress/historyService", () => ({
+  historyService: {
+    listCompletedSessions: jest.fn().mockResolvedValue([])
+  }
+}));
+
 describe("scaffold routes", () => {
   it("renders the home placeholder", async () => {
     const view = await render(<HomeScreen />);
@@ -119,7 +129,8 @@ describe("scaffold routes", () => {
       [<NewWorkoutScreen key="new-workout" />, "Create workout"],
       [<WorkoutDetailScreen key="workout-detail" />, "Workout"],
       [<ActiveSessionScreen key="session" />, "Log workout"],
-      [<ProgressScreen key="progress" />, "Exercise progress"]
+      [<ProgressScreen key="progress" />, "Exercise progress"],
+      [<HistoryScreen key="history" />, "Workout history"]
     ];
 
     for (const [route, title] of screens) {

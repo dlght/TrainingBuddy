@@ -174,6 +174,22 @@ description: "Task list for Guided Session Flow, Default Set Values, and Favouri
 
 ---
 
+## Phase 9: Round 2 (User Stories 6-10, added after manual validation surfaced bugs + new requests)
+
+**Purpose**: Implement the five items added to spec.md/plan.md's "Round 2" sections
+
+- [x] T036 [US8] Wire `app/workouts/new.tsx`'s "Search exercises" field to state and filter the addable-exercise list (case-insensitive substring match); add an honest "no matches" empty state
+- [x] T037 [US4] Switch `app/index.tsx`'s suggestion/dashboard-stats loads from mount-only `useEffect` to `useFocusEffect`, so favouriting on another screen is reflected on return to the dashboard without a restart
+- [x] T038 [US9] New `src/features/progress/historyService.ts` + `sessionRepository.listCompletedSessions`; new `app/history/index.tsx` session-list screen; bottom-nav "Progress" now routes to `/history` instead of the dead `/progress/placeholder` stub
+- [x] T039 [US6] New `workout_exercise_set_plans` table (self-healing migration + backfill of existing uniform data); `workoutRepository` upserts/reads per-set plans (FK-safe, reusing the T-hotfix pattern); `workoutValidation.ts` validates a list of sets instead of one range; `WorkoutExerciseEditor.tsx` gained a per-set list UI with "+ Add set" (copies the previous row's values forward, satisfying the "uniform" shortcut for free); session prefill now uses `getPlannedSetValues` to pull the *current* set's specific reps/weight instead of one exercise-wide default
+- [x] T040 [US7] Deleted `SupersetGroupControl.tsx` and all builder/validation code paths that could produce a superset group; `superset_group_id` column and any pre-existing data left untouched (unused, no migration risk taken)
+- [x] T041 [US10] `FinishDiscardActions` in `app/workouts/[workoutId]/session.tsx` now renders as a single row (`flexDirection: "row"`), each button `flex: 1`
+- [x] T042 Full regression pass: `npx tsc --noEmit` clean; Jest suite 39 suites / 105 tests passing, including new real-SQLite coverage for the set-plans migration/backfill and the history service
+
+**Checkpoint**: All Round 2 items implemented and covered by tests; T034/T035 (manual Expo validation, Delivered status) still pending the user's hands-on pass covering both rounds together
+
+---
+
 ## Dependencies & Execution Order
 
 ### Phase Dependencies

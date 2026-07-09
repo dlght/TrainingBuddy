@@ -102,9 +102,9 @@ describe("WorkoutBuilder screen", () => {
     await fireEvent.press(view.getByLabelText("Add exercise"));
 
     // Weight is not collected for bodyweight exercises, but is for equipment-based ones.
-    expect(view.queryByLabelText("Default weight for Bodyweight Squat")).toBeNull();
-    expect(view.getByLabelText("Default weight for Incline Push-Up")).toBeOnTheScreen();
-    expect(view.getByLabelText("Default weight for One-Arm Dumbbell Row")).toBeOnTheScreen();
+    expect(view.queryByLabelText("Weight for Bodyweight Squat set 1")).toBeNull();
+    expect(view.getByLabelText("Weight for Incline Push-Up set 1")).toBeOnTheScreen();
+    expect(view.getByLabelText("Weight for One-Arm Dumbbell Row set 1")).toBeOnTheScreen();
 
     await fireEvent.press(view.getByText("Save workout"));
 
@@ -114,30 +114,18 @@ describe("WorkoutBuilder screen", () => {
       exercises: [
         {
           exerciseId: "bodyweight-squat",
-          targetSets: "2",
-          targetRepRangeLow: "10",
-          targetRepRangeHigh: "10",
           targetRestSeconds: "60",
-          targetWeight: null,
-          supersetGroupId: null
+          setPlans: [{ reps: "10", weight: null }]
         },
         {
           exerciseId: "incline-push-up",
-          targetSets: "2",
-          targetRepRangeLow: "10",
-          targetRepRangeHigh: "10",
           targetRestSeconds: "60",
-          targetWeight: "",
-          supersetGroupId: null
+          setPlans: [{ reps: "10", weight: "" }]
         },
         {
           exerciseId: "one-arm-dumbbell-row",
-          targetSets: "2",
-          targetRepRangeLow: "10",
-          targetRepRangeHigh: "10",
           targetRestSeconds: "60",
-          targetWeight: "",
-          supersetGroupId: null
+          setPlans: [{ reps: "10", weight: "" }]
         }
       ]
     });

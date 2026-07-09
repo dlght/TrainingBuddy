@@ -20,10 +20,11 @@ describe("copying sample workouts", () => {
         exercises: [
           {
             exerciseId: "bodyweight-squat",
-            targetSets: 2,
-            targetRepRangeLow: 8,
-            targetRepRangeHigh: 12,
-            targetRestSeconds: 60
+            targetRestSeconds: 60,
+            setPlans: [
+              { reps: 8, weight: null },
+              { reps: 12, weight: null }
+            ]
           }
         ]
       })
@@ -44,11 +45,9 @@ describe("copying sample workouts", () => {
       name: "Full Body A Custom",
       exercises: copied.exercises.map((exercise) => ({
         exerciseId: exercise.exerciseId,
-        targetSets: exercise.targetSets,
-        targetRepRangeLow: exercise.targetRepRangeLow,
-        targetRepRangeHigh: exercise.targetRepRangeHigh,
         targetRestSeconds: exercise.targetRestSeconds,
-        supersetGroupId: exercise.supersetGroupId
+        supersetGroupId: exercise.supersetGroupId,
+        setPlans: exercise.setPlans.map((plan) => ({ reps: plan.reps, weight: plan.weight }))
       }))
     });
 

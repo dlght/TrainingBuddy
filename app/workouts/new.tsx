@@ -19,6 +19,7 @@ import { SwipeCard } from "@/components/SwipeCard";
 import { theme } from "@/components/theme";
 import { exerciseLibraryService } from "@/features/exercises/exerciseLibraryService";
 import {
+  createSetPlanValue,
   WorkoutExerciseEditor,
   type WorkoutExerciseEditorValue
 } from "@/features/workouts/WorkoutExerciseEditor";
@@ -50,11 +51,8 @@ function editorValueForExercise(exercise: Exercise, index: number): WorkoutExerc
     key: `${exercise.id}-${Date.now()}-${index}`,
     exerciseId: exercise.id,
     exerciseName: exercise.name,
-    targetSets: "2",
-    targetReps: "10",
     targetRestSeconds: "60",
-    targetWeight: "",
-    supersetGroupId: null
+    setPlans: [createSetPlanValue()]
   };
 }
 
@@ -64,16 +62,24 @@ function editorValuesForWorkout(
 ): WorkoutExerciseEditorValue[] {
   return workout.exercises.map((workoutExercise) => {
     const exercise = exercisesById.get(workoutExercise.exerciseId);
+    const setPlans =
+      workoutExercise.setPlans.length > 0
+        ? workoutExercise.setPlans.map((plan) =>
+            createSetPlanValue(String(plan.reps), plan.weight === null ? "" : String(plan.weight))
+          )
+        : [
+            createSetPlanValue(
+              String(workoutExercise.targetRepRangeLow || 10),
+              workoutExercise.targetWeight === null ? "" : String(workoutExercise.targetWeight)
+            )
+          ];
 
     return {
       key: workoutExercise.id,
       exerciseId: workoutExercise.exerciseId,
       exerciseName: exercise?.name ?? workoutExercise.exerciseId,
-      targetSets: String(workoutExercise.targetSets),
-      targetReps: String(workoutExercise.targetRepRangeLow || "10"),
       targetRestSeconds: String(workoutExercise.targetRestSeconds),
-      targetWeight: workoutExercise.targetWeight === null ? "" : String(workoutExercise.targetWeight),
-      supersetGroupId: workoutExercise.supersetGroupId
+      setPlans
     };
   });
 }
@@ -90,6 +96,7 @@ export default function NewWorkoutScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [programType, setProgramType] = useState<string | null>(null);
+  const [exerciseSearchText, setExerciseSearchText] = useState("");
 
   const {
     availableExercises,
@@ -172,6 +179,14 @@ export default function NewWorkoutScreen() {
     () => new Map(exercises.map((exercise) => [exercise.id, exercise])),
     [exercises]
   );
+
+  const addableExercises = useMemo(() => {
+    const query = exerciseSearchText.trim().toLowerCase();
+
+    return exercises
+      .filter((exercise) => !selectedExerciseIds.includes(exercise.id))
+      .filter((exercise) => query.length === 0 || exercise.name.toLowerCase().includes(query));
+  }, [exercises, selectedExerciseIds, exerciseSearchText]);
 
   const filteredExercises = useMemo(() => {
     return filterExercisesByProgramType(exercises, showAll ? null : programType);
@@ -269,15 +284,18 @@ export default function NewWorkoutScreen() {
   const saveWorkout = async () => {
     const values = {
       name,
-      exercises: selectedExercises.map((exercise) => ({
-        exerciseId: exercise.exerciseId,
-        targetSets: exercise.targetSets,
-        targetRepRangeLow: exercise.targetReps,
-        targetRepRangeHigh: exercise.targetReps,
-        targetRestSeconds: exercise.targetRestSeconds,
-        targetWeight: exercisesById.get(exercise.exerciseId)?.equipment === "bodyweight" ? null : exercise.targetWeight,
-        supersetGroupId: exercise.supersetGroupId
-      }))
+      exercises: selectedExercises.map((exercise) => {
+        const isBodyweight = exercisesById.get(exercise.exerciseId)?.equipment === "bodyweight";
+
+        return {
+          exerciseId: exercise.exerciseId,
+          targetRestSeconds: exercise.targetRestSeconds,
+          setPlans: exercise.setPlans.map((plan) => ({
+            reps: plan.reps,
+            weight: isBodyweight ? null : plan.weight
+          }))
+        };
+      })
     };
     const result = validateWorkoutDraft(values);
 
@@ -337,7 +355,6 @@ export default function NewWorkoutScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Selected exercises</Text>
         {validationErrors.exercises ? <Text style={styles.fieldError}>{validationErrors.exercises}</Text> : null}
-        {validationErrors.supersets ? <Text style={styles.fieldError}>{validationErrors.supersets}</Text> : null}
         {selectedExercises.length === 0 ? (
           <EmptyState
             title="No exercises selected"
@@ -437,13 +454,21 @@ export default function NewWorkoutScreen() {
         <View style={styles.exerciseSearchSection}>
           <Text style={styles.sectionTitle}>Add exercises</Text>
           <TextInput
+            accessibilityLabel="Search exercises"
+            onChangeText={setExerciseSearchText}
             placeholder="Search exercises..."
             style={styles.searchInput}
             placeholderTextColor={theme.colors.muted}
+            value={exerciseSearchText}
           />
+          {addableExercises.length === 0 ? (
+            <EmptyState
+              title="No matching exercises"
+              message="Try a different search, or clear it to see all exercises."
+            />
+          ) : null}
           <ScrollView style={styles.exerciseList}>
-            {exercises
-              .filter((exercise) => !selectedExerciseIds.includes(exercise.id))
+            {addableExercises
               .slice(0, 10)
               .map((exercise) => (
                 <Pressable

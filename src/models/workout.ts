@@ -8,6 +8,20 @@ export type Workout = {
   isFavourite: boolean;
 };
 
+export type WorkoutExerciseSetPlan = {
+  id: string;
+  workoutExerciseId: string;
+  setNumber: number;
+  reps: number;
+  weight: number | null;
+};
+
+export type WorkoutExerciseSetPlanSeed = {
+  setNumber: number;
+  reps: number;
+  weight: number | null;
+};
+
 export type WorkoutExercise = {
   id: string;
   workoutId: string;
@@ -19,9 +33,12 @@ export type WorkoutExercise = {
   targetRestSeconds: number;
   targetWeight: number | null;
   supersetGroupId: string | null;
+  setPlans: WorkoutExerciseSetPlan[];
 };
 
-export type WorkoutExerciseSeed = Omit<WorkoutExercise, "id" | "workoutId">;
+export type WorkoutExerciseSeed = Omit<WorkoutExercise, "id" | "workoutId" | "setPlans"> & {
+  setPlans?: WorkoutExerciseSetPlanSeed[];
+};
 
 export type WorkoutWithExercises = Workout & {
   exercises: WorkoutExercise[];

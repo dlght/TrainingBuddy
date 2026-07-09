@@ -9,6 +9,16 @@ export type StartSessionInput = {
   startedAt?: string;
 };
 
+export type CompletedSessionSummary = {
+  id: string;
+  workoutId: string;
+  workoutName: string;
+  startedAt: string;
+  endedAt: string;
+  totalSets: number;
+  totalVolume: number;
+};
+
 type WorkoutSessionRow = WorkoutSession;
 
 export function createSessionRepository(database: DatabaseAdapter) {
@@ -184,6 +194,26 @@ export function createSessionRepository(database: DatabaseAdapter) {
             AND sl.completed_at >= ?
           ORDER BY sl.completed_at ASC`,
         [userId, sinceIso]
+      );
+    },
+
+    async listCompletedSessions(userId: string, limit = 50): Promise<CompletedSessionSummary[]> {
+      return database.getAllAsync<CompletedSessionSummary>(
+        `SELECT ws.id as id,
+                ws.workout_id as workoutId,
+                ws.workout_name_snapshot as workoutName,
+                ws.started_at as startedAt,
+                ws.ended_at as endedAt,
+                COUNT(sl.id) as totalSets,
+                COALESCE(SUM(sl.reps * COALESCE(sl.weight, 0)), 0) as totalVolume
+           FROM workout_sessions ws
+           LEFT JOIN set_logs sl ON sl.session_id = ws.id
+          WHERE ws.user_id = ?
+            AND ws.status = 'completed'
+          GROUP BY ws.id
+          ORDER BY ws.ended_at DESC
+          LIMIT ?`,
+        [userId, limit]
       );
     }
   };

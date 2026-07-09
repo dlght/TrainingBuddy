@@ -1,13 +1,14 @@
-import type { WorkoutExerciseSeed } from "@/models/workout";
+import type { WorkoutExerciseSeed, WorkoutExerciseSetPlanSeed } from "@/models/workout";
+
+export type WorkoutExerciseSetPlanInput = {
+  reps: string | number;
+  weight?: string | number | null;
+};
 
 export type WorkoutExerciseTargetValues = {
   exerciseId: string;
-  targetSets: string | number;
-  targetRepRangeLow: string | number;
-  targetRepRangeHigh: string | number;
   targetRestSeconds: string | number;
-  targetWeight?: string | number | null;
-  supersetGroupId?: string | null;
+  setPlans: WorkoutExerciseSetPlanInput[];
 };
 
 export type WorkoutDraftValues = {
@@ -16,17 +17,13 @@ export type WorkoutDraftValues = {
 };
 
 export type WorkoutExerciseTargetErrors = Partial<
-  Record<
-    "exerciseId" | "targetSets" | "targetRepRangeLow" | "targetRepRangeHigh" | "targetRestSeconds" | "targetWeight",
-    string
-  >
+  Record<"exerciseId" | "targetRestSeconds" | "setPlans", string>
 >;
 
 export type WorkoutValidationErrors = {
   name?: string;
   exercises?: string;
   exerciseTargets?: Record<number, WorkoutExerciseTargetErrors>;
-  supersets?: string;
 };
 
 export type WorkoutValidationResult = {
@@ -38,11 +35,6 @@ export type WorkoutValidationResult = {
   };
 };
 
-type SupersetAssignable = {
-  exerciseId: string;
-  supersetGroupId?: string | null;
-};
-
 function integerFrom(value: string | number): number | null {
   const parsed = typeof value === "number" ? value : Number(value.trim());
 
@@ -51,12 +43,6 @@ function integerFrom(value: string | number): number | null {
   }
 
   return parsed;
-}
-
-function normalizeSupersetGroupId(groupId: string | null | undefined): string | null {
-  const normalized = groupId?.trim() ?? "";
-
-  return normalized.length > 0 ? normalized : null;
 }
 
 function nonNegativeNumberOrNull(
@@ -83,6 +69,22 @@ export function validateWorkoutName(name: string): string | null {
   return name.trim().length > 0 ? null : "Name this workout.";
 }
 
+/**
+ * Validates a single set of a per-set plan: reps must be a positive whole
+ * number, weight (when provided) must be 0 or more. Returns null on failure
+ * so the caller can flag the whole plan without needing per-row error UI.
+ */
+function parseSetPlan(set: WorkoutExerciseSetPlanInput, setNumber: number): WorkoutExerciseSetPlanSeed | null {
+  const reps = integerFrom(set.reps);
+  const weightResult = nonNegativeNumberOrNull(set.weight ?? null);
+
+  if (reps === null || reps <= 0 || !weightResult.isValid) {
+    return null;
+  }
+
+  return { setNumber, reps, weight: weightResult.value };
+}
+
 export function validateWorkoutExerciseTarget(
   target: WorkoutExerciseTargetValues
 ): {
@@ -91,52 +93,48 @@ export function validateWorkoutExerciseTarget(
 } {
   const errors: WorkoutExerciseTargetErrors = {};
   const exerciseId = target.exerciseId.trim();
-  const targetSets = integerFrom(target.targetSets);
-  const targetRepRangeLow = integerFrom(target.targetRepRangeLow);
-  const targetRepRangeHigh = integerFrom(target.targetRepRangeHigh);
   const targetRestSeconds = integerFrom(target.targetRestSeconds);
-  const targetWeightResult = nonNegativeNumberOrNull(target.targetWeight);
 
   if (!exerciseId) {
     errors.exerciseId = "Choose an exercise.";
-  }
-
-  if (targetSets === null || targetSets <= 0) {
-    errors.targetSets = "Sets must be a whole number above 0.";
-  }
-
-  if (targetRepRangeLow === null || targetRepRangeLow <= 0) {
-    errors.targetRepRangeLow = "Rep range must start above 0.";
-  }
-
-  if (targetRepRangeHigh === null || targetRepRangeHigh <= 0) {
-    errors.targetRepRangeHigh = "Rep range must end above 0.";
-  } else if (targetRepRangeLow !== null && targetRepRangeHigh < targetRepRangeLow) {
-    errors.targetRepRangeHigh = "Rep range end must be at least the start.";
   }
 
   if (targetRestSeconds === null || targetRestSeconds < 0) {
     errors.targetRestSeconds = "Rest must be 0 seconds or more.";
   }
 
-  if (!targetWeightResult.isValid) {
-    errors.targetWeight = "Weight must be 0 or more.";
+  let setPlans: WorkoutExerciseSetPlanSeed[] = [];
+
+  if (!target.setPlans || target.setPlans.length === 0) {
+    errors.setPlans = "Add at least one set.";
+  } else {
+    const parsed = target.setPlans.map((set, index) => parseSetPlan(set, index + 1));
+
+    if (parsed.some((set) => set === null)) {
+      errors.setPlans = "Each set needs reps above 0 and a weight of 0 or more.";
+    } else {
+      setPlans = parsed as WorkoutExerciseSetPlanSeed[];
+    }
   }
 
   if (Object.keys(errors).length > 0) {
     return { errors };
   }
 
+  const reps = setPlans.map((set) => set.reps);
+  const weights = setPlans.map((set) => set.weight).filter((weight): weight is number => weight !== null);
+
   return {
     errors,
     value: {
       exerciseId,
-      targetSets: targetSets as number,
-      targetRepRangeLow: targetRepRangeLow as number,
-      targetRepRangeHigh: targetRepRangeHigh as number,
+      targetSets: setPlans.length,
+      targetRepRangeLow: Math.min(...reps),
+      targetRepRangeHigh: Math.max(...reps),
       targetRestSeconds: targetRestSeconds as number,
-      targetWeight: targetWeightResult.isValid ? targetWeightResult.value : null,
-      supersetGroupId: normalizeSupersetGroupId(target.supersetGroupId)
+      targetWeight: weights.length > 0 ? weights[0] : null,
+      supersetGroupId: null,
+      setPlans
     }
   };
 }
@@ -174,23 +172,6 @@ export function validateWorkoutDraft(values: WorkoutDraftValues): WorkoutValidat
     }
   });
 
-  const supersetCounts = exercises.reduce<Record<string, number>>((counts, exercise) => {
-    if (!exercise.supersetGroupId) {
-      return counts;
-    }
-
-    return {
-      ...counts,
-      [exercise.supersetGroupId]: (counts[exercise.supersetGroupId] ?? 0) + 1
-    };
-  }, {});
-
-  const hasSingleExerciseSuperset = Object.values(supersetCounts).some((count) => count === 1);
-
-  if (hasSingleExerciseSuperset) {
-    errors.supersets = "Supersets need at least two exercises in the same group.";
-  }
-
   const isValid = Object.keys(errors).length === 0;
 
   return {
@@ -212,45 +193,8 @@ export function formatWorkoutValidationErrors(errors: WorkoutValidationErrors): 
   const messages = [
     errors.name,
     errors.exercises,
-    errors.supersets,
     ...targetErrors
   ].filter(Boolean);
 
   return messages[0] ?? "Workout details are not ready to save.";
-}
-
-export function assignSupersetGroup<TExercise extends SupersetAssignable>(
-  exercises: TExercise[],
-  exerciseIds: string[],
-  groupId = "superset-a"
-): TExercise[] {
-  const selectedIds = new Set(exerciseIds);
-  const normalizedGroupId = normalizeSupersetGroupId(groupId);
-
-  if (selectedIds.size < 2 || !normalizedGroupId) {
-    throw new Error("Choose at least two exercises for a superset.");
-  }
-
-  return exercises.map((exercise) =>
-    selectedIds.has(exercise.exerciseId)
-      ? {
-          ...exercise,
-          supersetGroupId: normalizedGroupId
-        }
-      : exercise
-  );
-}
-
-export function clearSupersetGroup<TExercise extends SupersetAssignable>(
-  exercises: TExercise[],
-  exerciseId: string
-): TExercise[] {
-  return exercises.map((exercise) =>
-    exercise.exerciseId === exerciseId
-      ? {
-          ...exercise,
-          supersetGroupId: null
-        }
-      : exercise
-  );
 }

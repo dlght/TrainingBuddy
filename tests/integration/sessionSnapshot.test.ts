@@ -29,10 +29,11 @@ describe("completed session snapshots", () => {
         exercises: [
           {
             exerciseId: "bodyweight-squat",
-            targetSets: 1,
-            targetRepRangeLow: 8,
-            targetRepRangeHigh: 12,
-            targetRestSeconds: 60
+            targetRestSeconds: 60,
+            setPlans: [
+              { reps: 8, weight: null },
+              { reps: 12, weight: null }
+            ]
           }
         ]
       },
@@ -54,10 +55,11 @@ describe("completed session snapshots", () => {
       exercises: [
         {
           exerciseId: "bodyweight-squat",
-          targetSets: 1,
-          targetRepRangeLow: 3,
-          targetRepRangeHigh: 5,
-          targetRestSeconds: 120
+          targetRestSeconds: 120,
+          setPlans: [
+            { reps: 3, weight: null },
+            { reps: 5, weight: null }
+          ]
         }
       ]
     });

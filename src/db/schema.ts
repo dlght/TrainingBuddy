@@ -75,6 +75,19 @@ export const workoutExercises = sqliteTable("workout_exercises", {
   index("workout_exercises_exercise_idx").on(table.exerciseId)
 ]);
 
+export const workoutExerciseSetPlans = sqliteTable("workout_exercise_set_plans", {
+  id: text("id").primaryKey(),
+  workoutExerciseId: text("workout_exercise_id")
+    .notNull()
+    .references(() => workoutExercises.id, { onDelete: "cascade" }),
+  setNumber: integer("set_number").notNull(),
+  reps: integer("reps").notNull(),
+  weight: real("weight")
+}, (table) => [
+  uniqueIndex("workout_exercise_set_plans_unique").on(table.workoutExerciseId, table.setNumber),
+  index("workout_exercise_set_plans_workout_exercise_idx").on(table.workoutExerciseId)
+]);
+
 export const workoutSessions = sqliteTable("workout_sessions", {
   id: text("id").primaryKey(),
   workoutId: text("workout_id")
@@ -123,6 +136,7 @@ export const schema = {
   exercises,
   workouts,
   workoutExercises,
+  workoutExerciseSetPlans,
   workoutSessions,
   setLogs,
   seedVersions
@@ -138,6 +152,8 @@ export type WorkoutRow = typeof workouts.$inferSelect;
 export type NewWorkoutRow = typeof workouts.$inferInsert;
 export type WorkoutExerciseRow = typeof workoutExercises.$inferSelect;
 export type NewWorkoutExerciseRow = typeof workoutExercises.$inferInsert;
+export type WorkoutExerciseSetPlanRow = typeof workoutExerciseSetPlans.$inferSelect;
+export type NewWorkoutExerciseSetPlanRow = typeof workoutExerciseSetPlans.$inferInsert;
 export type WorkoutSessionRow = typeof workoutSessions.$inferSelect;
 export type NewWorkoutSessionRow = typeof workoutSessions.$inferInsert;
 export type SetLogRow = typeof setLogs.$inferSelect;

@@ -1,7 +1,7 @@
 import type { DatabaseAdapter, DbRunResult, SqlParams, SqlValue } from "../../src/db/client";
 import type { Exercise, MuscleGroup } from "../../src/models/exercise";
 import type { SetLog, WorkoutSession } from "../../src/models/session";
-import type { Workout, WorkoutExercise } from "../../src/models/workout";
+import type { Workout, WorkoutExercise, WorkoutExerciseSetPlan } from "../../src/models/workout";
 import type { UserProfile } from "../../src/models/user";
 
 type SeedVersionRow = {
@@ -31,11 +31,20 @@ export class TestDatabase implements DatabaseAdapter {
   readonly exercises = new Map<string, Exercise>();
   readonly workouts = new Map<string, Workout>();
   readonly workoutExercises = new Map<string, WorkoutExercise>();
+  readonly workoutExerciseSetPlans = new Map<string, WorkoutExerciseSetPlan>();
   readonly workoutSessions = new Map<string, WorkoutSession>();
   readonly setLogs = new Map<string, SetLog>();
 
   async execAsync(sql: string): Promise<void> {
     this.execStatements.push(sql);
+  }
+
+  private deleteSetPlansForWorkoutExercises(workoutExerciseIds: Set<string>): void {
+    for (const [id, plan] of this.workoutExerciseSetPlans) {
+      if (workoutExerciseIds.has(plan.workoutExerciseId)) {
+        this.workoutExerciseSetPlans.delete(id);
+      }
+    }
   }
 
   async runAsync(sql: string, params?: SqlParams): Promise<DbRunResult> {
@@ -136,16 +145,46 @@ export class TestDatabase implements DatabaseAdapter {
     }
 
     if (normalized.startsWith("delete from workout_exercises where id =")) {
-      this.workoutExercises.delete(String(row[0]));
+      const workoutExerciseId = String(row[0]);
+      this.workoutExercises.delete(workoutExerciseId);
+      this.deleteSetPlansForWorkoutExercises(new Set([workoutExerciseId]));
+      return { changes: 1 };
+    }
+
+    if (normalized.startsWith("delete from workout_exercise_set_plans")) {
+      const workoutExerciseId = String(row[0]);
+
+      for (const [id, plan] of this.workoutExerciseSetPlans) {
+        if (plan.workoutExerciseId === workoutExerciseId) {
+          this.workoutExerciseSetPlans.delete(id);
+        }
+      }
+      return { changes: 1 };
+    }
+
+    if (normalized.startsWith("insert into workout_exercise_set_plans")) {
+      const plan: WorkoutExerciseSetPlan = {
+        id: String(row[0]),
+        workoutExerciseId: String(row[1]),
+        setNumber: Number(row[2]),
+        reps: Number(row[3]),
+        weight: row[4] === null || row[4] === undefined ? null : Number(row[4])
+      };
+
+      this.workoutExerciseSetPlans.set(plan.id, plan);
       return { changes: 1 };
     }
 
     if (normalized.startsWith("delete from workout_exercises")) {
+      const removedIds = new Set<string>();
+
       for (const [id, exercise] of this.workoutExercises) {
         if (exercise.workoutId === row[0]) {
           this.workoutExercises.delete(id);
+          removedIds.add(id);
         }
       }
+      this.deleteSetPlansForWorkoutExercises(removedIds);
       return { changes: 1 };
     }
 
@@ -169,7 +208,10 @@ export class TestDatabase implements DatabaseAdapter {
         targetRepRangeHigh: Number(row[6]),
         targetRestSeconds: Number(row[7]),
         targetWeight: row[8] === null || row[8] === undefined ? null : Number(row[8]),
-        supersetGroupId: row[9] === null ? null : String(row[9])
+        supersetGroupId: row[9] === null ? null : String(row[9]),
+        // Per-set plans (workout_exercise_set_plans) aren't modeled by this mock;
+        // real-SQLite integration tests cover that table directly.
+        setPlans: existing?.setPlans ?? []
       };
 
       this.workoutExercises.set(workoutExercise.id, workoutExercise);
@@ -208,11 +250,15 @@ export class TestDatabase implements DatabaseAdapter {
 
       this.workouts.delete(workoutId);
 
+      const removedIds = new Set<string>();
+
       for (const [id, exercise] of this.workoutExercises) {
         if (exercise.workoutId === workoutId) {
           this.workoutExercises.delete(id);
+          removedIds.add(id);
         }
       }
+      this.deleteSetPlansForWorkoutExercises(removedIds);
 
       return { changes: 1 };
     }
@@ -288,6 +334,14 @@ export class TestDatabase implements DatabaseAdapter {
       return (Array.from(this.users.values()).sort((a, b) => a.createdAt.localeCompare(b.createdAt))[0] ?? null) as T | null;
     }
 
+    if (normalized.includes("from workout_exercises") && normalized.includes("order_index")) {
+      return (
+        Array.from(this.workoutExercises.values()).find(
+          (exercise) => exercise.workoutId === String(row[0]) && exercise.orderIndex === Number(row[1])
+        ) ?? null
+      ) as T | null;
+    }
+
     if (normalized.includes("from workouts") && normalized.includes("where id")) {
       return (this.workouts.get(String(row[0])) ?? null) as T | null;
     }
@@ -342,6 +396,23 @@ export class TestDatabase implements DatabaseAdapter {
 
         return a.name.localeCompare(b.name);
       }) as T[];
+    }
+
+    // Checked before the generic "workout_exercises" match below: the bulk
+    // set-plans query embeds a "FROM workout_exercises" subquery, which would
+    // otherwise be caught by that broader, less-specific check first.
+    if (normalized.includes("from workout_exercise_set_plans")) {
+      const matchingWorkoutExerciseIds = normalized.includes("in (select id from workout_exercises")
+        ? new Set(
+            Array.from(this.workoutExercises.values())
+              .filter((exercise) => exercise.workoutId === row[0])
+              .map((exercise) => exercise.id)
+          )
+        : new Set([String(row[0])]);
+
+      return Array.from(this.workoutExerciseSetPlans.values())
+        .filter((plan) => matchingWorkoutExerciseIds.has(plan.workoutExerciseId))
+        .sort((a, b) => a.setNumber - b.setNumber) as T[];
     }
 
     if (normalized.includes("from workout_exercises")) {

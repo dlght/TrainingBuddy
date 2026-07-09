@@ -16,8 +16,6 @@ export type ActiveSessionExercise = WorkoutExercise & {
   exerciseName: string;
   loggedSetCount: number;
   isBodyweight: boolean;
-  defaultReps: number | null;
-  defaultWeight: number | null;
 };
 
 export type ActiveSessionDetails = {
@@ -68,9 +66,7 @@ async function hydrateSessionDetails(
       ...workoutExercise,
       exerciseName: exercisesById.get(workoutExercise.exerciseId)?.name ?? workoutExercise.exerciseId,
       loggedSetCount: countLoggedSets(setLogs, workoutExercise.id),
-      isBodyweight: exercisesById.get(workoutExercise.exerciseId)?.equipment === "bodyweight",
-      defaultReps: workoutExercise.targetRepRangeLow ?? null,
-      defaultWeight: workoutExercise.targetWeight ?? null
+      isBodyweight: exercisesById.get(workoutExercise.exerciseId)?.equipment === "bodyweight"
     }))
   };
 }

@@ -5,6 +5,8 @@ import type {
   Workout,
   WorkoutExercise,
   WorkoutExerciseSeed,
+  WorkoutExerciseSetPlan,
+  WorkoutExerciseSetPlanSeed,
   WorkoutWithExercises
 } from "../../models/workout";
 import { runInTransaction } from "../migrate";
@@ -23,12 +25,52 @@ function toWorkout(row: WorkoutRow): Workout {
   };
 }
 
+/**
+ * Derives a "uniform" per-set plan (every set carrying the same reps/weight)
+ * from an exercise's existing summary fields, for any caller that doesn't pass
+ * explicit setPlans. This is what keeps every pre-4 call site (copyTemplateWorkout,
+ * seed authoring) working unchanged: a uniform plan is behaviorally identical to
+ * today's single-default-per-exercise behavior.
+ */
+function derivedUniformPlan(exercise: WorkoutExerciseSeed): WorkoutExerciseSetPlanSeed[] {
+  return Array.from({ length: exercise.targetSets }, (_, index) => ({
+    setNumber: index + 1,
+    reps: exercise.targetRepRangeLow,
+    weight: exercise.targetWeight
+  }));
+}
+
+/**
+ * Replaces a workout_exercise's planned sets. Safe to delete-and-reinsert
+ * outright (unlike workout_exercises itself): nothing else has a foreign key
+ * into workout_exercise_set_plans, so there's no history to accidentally break.
+ */
+async function replaceSetPlans(
+  database: DatabaseAdapter,
+  workoutExerciseId: string,
+  plans: WorkoutExerciseSetPlanSeed[]
+): Promise<void> {
+  await database.runAsync("DELETE FROM workout_exercise_set_plans WHERE workout_exercise_id = ?", [
+    workoutExerciseId
+  ]);
+
+  for (const plan of plans) {
+    await database.runAsync(
+      `INSERT INTO workout_exercise_set_plans (id, workout_exercise_id, set_number, reps, weight)
+       VALUES (?, ?, ?, ?, ?)`,
+      [createLocalId("set_plan"), workoutExerciseId, plan.setNumber, plan.reps, plan.weight]
+    );
+  }
+}
+
 async function insertWorkoutExercises(
   database: DatabaseAdapter,
   workoutId: string,
   exercises: WorkoutExerciseSeed[]
 ): Promise<void> {
   for (const exercise of exercises) {
+    const id = createLocalId("workout_exercise");
+
     await database.runAsync(
       `INSERT INTO workout_exercises (
           id,
@@ -44,7 +86,7 @@ async function insertWorkoutExercises(
         )
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        createLocalId("workout_exercise"),
+        id,
         workoutId,
         exercise.exerciseId,
         exercise.orderIndex,
@@ -56,6 +98,8 @@ async function insertWorkoutExercises(
         exercise.supersetGroupId
       ]
     );
+
+    await replaceSetPlans(database, id, exercise.setPlans ?? derivedUniformPlan(exercise));
   }
 }
 
@@ -112,6 +156,15 @@ async function upsertWorkoutExercises(
         exercise.supersetGroupId
       ]
     );
+
+    const row = await database.getFirstAsync<{ id: string }>(
+      "SELECT id FROM workout_exercises WHERE workout_id = ? AND order_index = ?",
+      [workoutId, exercise.orderIndex]
+    );
+
+    if (row) {
+      await replaceSetPlans(database, row.id, exercise.setPlans ?? derivedUniformPlan(exercise));
+    }
   }
 
   const keptOrderIndexes = exercises.map((exercise) => exercise.orderIndex);
@@ -191,8 +244,22 @@ export function createWorkoutRepository(database: DatabaseAdapter) {
       return row ? toWorkout(row) : null;
     },
 
+    async listSetPlans(workoutExerciseId: string): Promise<WorkoutExerciseSetPlan[]> {
+      return database.getAllAsync<WorkoutExerciseSetPlan>(
+        `SELECT id,
+                workout_exercise_id as workoutExerciseId,
+                set_number as setNumber,
+                reps,
+                weight
+           FROM workout_exercise_set_plans
+          WHERE workout_exercise_id = ?
+          ORDER BY set_number ASC`,
+        [workoutExerciseId]
+      );
+    },
+
     async listWorkoutExercises(workoutId: string): Promise<WorkoutExercise[]> {
-      return database.getAllAsync<WorkoutExercise>(
+      const rows = await database.getAllAsync<Omit<WorkoutExercise, "setPlans">>(
         `SELECT id,
                 workout_id as workoutId,
                 exercise_id as exerciseId,
@@ -208,6 +275,34 @@ export function createWorkoutRepository(database: DatabaseAdapter) {
           ORDER BY order_index ASC`,
         [workoutId]
       );
+
+      if (rows.length === 0) {
+        return [];
+      }
+
+      const allPlans = await database.getAllAsync<WorkoutExerciseSetPlan>(
+        `SELECT id,
+                workout_exercise_id as workoutExerciseId,
+                set_number as setNumber,
+                reps,
+                weight
+           FROM workout_exercise_set_plans
+          WHERE workout_exercise_id IN (SELECT id FROM workout_exercises WHERE workout_id = ?)
+          ORDER BY set_number ASC`,
+        [workoutId]
+      );
+      const plansByExerciseId = new Map<string, WorkoutExerciseSetPlan[]>();
+
+      for (const plan of allPlans) {
+        const existing = plansByExerciseId.get(plan.workoutExerciseId) ?? [];
+        existing.push(plan);
+        plansByExerciseId.set(plan.workoutExerciseId, existing);
+      }
+
+      return rows.map((row) => ({
+        ...row,
+        setPlans: plansByExerciseId.get(row.id) ?? []
+      }));
     },
 
     async getWorkoutWithExercises(id: string): Promise<WorkoutWithExercises | null> {
@@ -418,7 +513,12 @@ export function createWorkoutRepository(database: DatabaseAdapter) {
           targetRepRangeHigh: exercise.targetRepRangeHigh,
           targetRestSeconds: exercise.targetRestSeconds,
           targetWeight: exercise.targetWeight,
-          supersetGroupId: exercise.supersetGroupId
+          supersetGroupId: exercise.supersetGroupId,
+          setPlans: exercise.setPlans.map((plan) => ({
+            setNumber: plan.setNumber,
+            reps: plan.reps,
+            weight: plan.weight
+          }))
         }))
       });
     }
