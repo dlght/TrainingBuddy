@@ -6,6 +6,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { ExerciseLabel } from "@/components/ExerciseLabel";
 import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
+import { challengesService, type ChallengeProgress } from "@/features/challenges/challengesService";
 import { profileService } from "@/features/profile/profileService";
 import { dashboardService } from "@/features/progress/dashboardService";
 import type { WeeklyDashboardStats } from "@/features/progress/dashboardStats";
@@ -13,11 +14,9 @@ import { streakService } from "@/features/progress/streakService";
 import { sessionService, type ActiveSessionDetails } from "@/features/sessions/sessionService";
 import { workoutRecommendationService } from "@/features/workouts/workoutRecommendationService";
 import { describeLoadError } from "@/lib/networkError";
-import type { UserProfile } from "@/models/user";
 
 export default function HomeScreen() {
   const router = useRouter();
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [activeSession, setActiveSession] = useState<ActiveSessionDetails | null>(null);
   const [isCheckingProfile, setIsCheckingProfile] = useState(true);
   const [isDiscardingSession, setIsDiscardingSession] = useState(false);
@@ -27,6 +26,7 @@ export default function HomeScreen() {
   const [streakDays, setStreakDays] = useState<number | null>(null);
   const [statsError, setStatsError] = useState<string | null>(null);
   const [selectedDayKey, setSelectedDayKey] = useState<string | null>(null);
+  const [challengeProgress, setChallengeProgress] = useState<ChallengeProgress | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -43,8 +43,6 @@ export default function HomeScreen() {
           router.replace("/profile/setup");
           return;
         }
-
-        setProfile(loadedProfile);
 
         try {
           const resumedSession = await sessionService.resumeActiveSession();
@@ -127,6 +125,14 @@ export default function HomeScreen() {
           console.error("Streak could not be loaded.", error);
           if (mounted) setStreakDays(null);
         }
+
+        try {
+          const progress = await challengesService.getProgress();
+          if (mounted) setChallengeProgress(progress);
+        } catch (error) {
+          console.error("Challenge progress could not be loaded.", error);
+          if (mounted) setChallengeProgress(null);
+        }
       }
 
       void loadDashboardStats();
@@ -163,20 +169,6 @@ export default function HomeScreen() {
   return (
     <View style={styles.page}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.topHeader}>
-          <Text style={styles.topHeaderTitle}>TrainingBuddy</Text>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Profile"
-            onPress={() => router.push("/profile/setup")}
-            style={styles.profileButton}
-          >
-            <Text style={styles.profileButtonText}>
-              {profile?.name ? profile.name.charAt(0).toUpperCase() : "?"}
-            </Text>
-          </Pressable>
-        </View>
-
         <View style={styles.heroCard}>
           <View style={styles.heroHeader}>
           {suggestedWorkouts === null ? (
@@ -203,7 +195,7 @@ export default function HomeScreen() {
                     <Text style={styles.topBubbleRank}>#{index + 1}</Text>
                     {workout.isFavourite && <Text style={styles.favouriteIcon}>❤️</Text>}
                   </View>
-                  <ExerciseLabel name={workout.name} style={styles.topBubbleName} maxChars={22} />
+                  <ExerciseLabel name={workout.name} style={styles.topBubbleName} numberOfLines={2} />
                   <Text style={styles.topBubbleSub}>Suggested for you</Text>
                 </Pressable>
               ))}
@@ -296,6 +288,38 @@ export default function HomeScreen() {
             </>
           )}
         </View>
+
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/challenges" as Parameters<typeof router.push>[0])}
+          style={styles.sectionCard}
+        >
+          <Text style={styles.sectionTitle}>Challenges</Text>
+          {challengeProgress === null ? (
+            <Text style={styles.body}>Loading your challenges…</Text>
+          ) : challengeProgress.badges.every((badge) => !badge.achieved) ? (
+            <Text style={styles.body}>Start working out to earn badges.</Text>
+          ) : (
+            <>
+              <Text style={styles.challengeSummary}>
+                <Text style={styles.challengeSummaryValue}>
+                  {challengeProgress.badges.filter((badge) => badge.achieved).length}
+                </Text>{" "}
+                of {challengeProgress.badges.length} badges earned
+              </Text>
+              <View style={styles.badgeShelf}>
+                {challengeProgress.badges.map((badge) => (
+                  <View
+                    key={badge.id}
+                    style={[styles.badgeMedallion, badge.achieved ? styles.badgeMedallionAchieved : styles.badgeMedallionLocked]}
+                  >
+                    <Text style={styles.badgeMedallionIcon}>{badge.achieved ? "🏆" : "🔒"}</Text>
+                  </View>
+                ))}
+              </View>
+            </>
+          )}
+        </Pressable>
       </ScrollView>
 
       <View style={styles.bottomNav}>
@@ -310,6 +334,19 @@ export default function HomeScreen() {
         <Pressable accessibilityRole="button" onPress={() => router.push("/history")} style={styles.navItem}>
           <Text style={styles.navIcon}>📈</Text>
           <Text style={styles.navLabel}>Progress</Text>
+        </Pressable>
+        {/* Cast: expo-router's locally generated typed-routes file is not yet
+            tracking this newly added route on every machine; "/challenges"
+            is confirmed correct against the actual file-based route
+            (app/challenges/index.tsx), matching every other index route's
+            href convention (e.g. "/workouts", "/history"). */}
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => router.push("/challenges" as Parameters<typeof router.push>[0])}
+          style={styles.navItem}
+        >
+          <Text style={styles.navIcon}>🏆</Text>
+          <Text style={styles.navLabel}>Challenges</Text>
         </Pressable>
       </View>
     </View>
@@ -329,29 +366,6 @@ const styles = StyleSheet.create({
     padding: theme.spacing.lg,
     gap: theme.spacing.md,
     paddingBottom: 110
-  },
-  topHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center"
-  },
-  topHeaderTitle: {
-    color: theme.colors.text,
-    fontSize: 18,
-    fontWeight: "800"
-  },
-  profileButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: theme.colors.primary
-  },
-  profileButtonText: {
-    color: theme.colors.primaryText,
-    fontSize: 15,
-    fontWeight: "800"
   },
   heroCard: {
     borderRadius: 24,
@@ -509,6 +523,42 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700"
   },
+  challengeSummary: {
+    marginTop: theme.spacing.xs,
+    color: theme.colors.muted,
+    fontSize: 14
+  },
+  challengeSummaryValue: {
+    color: theme.colors.text,
+    fontSize: 20,
+    fontWeight: "800"
+  },
+  badgeShelf: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: theme.spacing.sm,
+    marginTop: theme.spacing.md
+  },
+  badgeMedallion: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1
+  },
+  badgeMedallionAchieved: {
+    borderColor: theme.colors.primary,
+    backgroundColor: "#e9f7f1"
+  },
+  badgeMedallionLocked: {
+    borderColor: theme.colors.border,
+    backgroundColor: "#f1f5f9",
+    opacity: 0.6
+  },
+  badgeMedallionIcon: {
+    fontSize: 16
+  },
   favoriteDot: {
     width: 10,
     height: 10,
@@ -523,37 +573,37 @@ const styles = StyleSheet.create({
   topBubble: {
     flex: 1,
     borderRadius: 16,
-    padding: theme.spacing.md,
+    padding: theme.spacing.sm,
     borderWidth: 1,
     backgroundColor: "#fff",
-    marginRight: theme.spacing.sm,
-    minHeight: 96,
+    minHeight: 132,
     justifyContent: "center"
   },
   topBubbleHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: theme.spacing.sm,
+    gap: theme.spacing.xs,
     marginBottom: theme.spacing.xs
   },
   favouriteIcon: {
-    fontSize: 16,
+    fontSize: 14,
     marginLeft: "auto"
   },
   topBubbleRank: {
     color: theme.colors.muted,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "800"
   },
   topBubbleName: {
     color: theme.colors.text,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: "800",
+    lineHeight: 17,
     marginTop: 4
   },
   topBubbleSub: {
     color: theme.colors.muted,
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 6
   },
   bubbleGrid: {

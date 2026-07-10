@@ -80,7 +80,7 @@ description: "Task list for Accounts and Cloud Backend (Supabase migration)"
 - [x] T018 [US1] Create `app/(auth)/sign-up.tsx`: email/password (+confirm) fields, calls `authStore.signUp`, surfaces validation and "already registered" errors inline
 - [x] T019 [US1] Create `app/(auth)/forgot-password.tsx`: email field, calls `authStore.resetPasswordForEmail`, shows a "check your email" confirmation state
 - [x] T020 [US1] Add a sign-out action (calling `authStore.signOut()`) to the existing profile screen (`app/profile/setup.tsx` or a new settings entry point) — the `app/_layout.tsx` gate from T013 routes back to sign-in automatically once the session clears
-- [ ] T021 [US1] Validate manually in Expo: sign up with a new email and land on the dashboard; force-quit and reopen, confirm still signed in; sign out and confirm routed to sign-in; attempt sign-in with the wrong password and confirm an inline error; sign in correctly and confirm success
+- [x] T021 [US1] Validate manually in Expo: sign up with a new email and land on the dashboard; force-quit and reopen, confirm still signed in; sign out and confirm routed to sign-in; attempt sign-in with the wrong password and confirm an inline error; sign in correctly and confirm success
 
 **Checkpoint**: User Story 1 is fully functional and independently testable
 
@@ -104,19 +104,19 @@ description: "Task list for Accounts and Cloud Backend (Supabase migration)"
 
 - [x] T025 [US2] Rewrite `src/features/workouts/workoutBuilderService.ts`, `workoutListService.ts`, and `workoutRecommendationService.ts` to read/write `workouts`/`workout_exercises`/`workout_exercise_set_plans` via Supabase, scoped to the current authenticated user — also added `src/features/workouts/workoutRepository.ts` (internal Supabase-backed helper, not a public service) since the order-index upsert-preserving-history logic is shared by all three; fixed `app/workouts/index.tsx`'s favourite toggle, which bypassed the service layer with a direct `@/db` import
 - [x] T026 [P] [US2] Rewrite `workoutCrud.test.ts`, `copySampleWorkout.test.ts`, `workoutExerciseUpsertPreservesHistory.test.ts`, `workoutExerciseSetPlanCrud.test.ts`, and `workoutRecommendationService.test.ts` against `fakeSupabase.ts`
-- [ ] T027 [US2] Validate manually in Expo: create, edit, and delete a workout; confirm each change persists after a reload
+- [x] T027 [US2] Validate manually in Expo: create, edit, and delete a workout; confirm each change persists after a reload
 
 ### Slice C - Sessions + Set Logging
 
 - [x] T028 [US2] Rewrite `src/features/sessions/sessionService.ts`, `setLogService.ts` to read/write `workout_sessions`/`set_logs` via Supabase, scoped to the current authenticated user, via a new shared `src/features/sessions/sessionRepository.ts` internal helper — preserved existing exported function signatures (e.g. `completeSession`) so `app/workouts/[workoutId]/session.tsx` needed no changes; `sessionFlow.ts` untouched (pure, no persistence)
 - [x] T029 [P] [US2] Rewrote `startWorkoutSession.test.ts`, `logWorkoutSession.test.ts`, `resumeInterruptedSession.test.ts`, `finishEmptySession.test.ts`, `sessionSnapshot.test.ts`, `noPrMetrics.test.ts` against `fakeSupabase.ts` (`ActiveSession.test.tsx`/`SetLogEditor.test.tsx` needed no changes — they mock the service layer, which kept its signatures)
-- [ ] T030 [US2] Validate manually in Expo: start a session, log a few sets, finish it; reload the app and confirm it round-tripped through Supabase
+- [x] T030 [US2] Validate manually in Expo: start a session, log a few sets, finish it; reload the app and confirm it round-tripped through Supabase
 
 ### Slice D - History, Dashboard, Streak
 
 - [x] T031 [US2] Rewrite `src/features/progress/progressService.ts`, `dashboardService.ts`, `historyService.ts`, and `streakService.ts` to read from Supabase (via a new `src/features/progress/progressRepository.ts` internal helper for the exercise-history join); pure functions (`dashboardStats.ts`, `monthCalendar.ts`, `sessionBreakdown.ts`, `streak.ts`) unchanged
 - [x] T032 [P] [US2] Rewrote `exerciseHistory.test.ts`, `historyService.test.ts`, `streakService.test.ts`, added `dashboardService.test.ts`, against `fakeSupabase.ts` (`HistoryScreen.test.tsx`/`Dashboard.test.tsx` needed no changes — they mock the service layer)
-- [ ] T033 [US2] Validate manually in Expo: open the dashboard and History; confirm streak, trend chart, and calendar all reflect the session logged in T030
+- [x] T033 [US2] Validate manually in Expo: open the dashboard and History; confirm streak, trend chart, and calendar all reflect the session logged in T030
 
 ### Cross-Account Isolation and Offline State
 
@@ -151,9 +151,9 @@ description: "Task list for Accounts and Cloud Backend (Supabase migration)"
 
 **Independent Test**: From the profile screen, confirm the signed-in email is visible, sign-out works, and "Forgot password" sends a reset email.
 
-- [ ] T041 [US4] Display the signed-in user's email (from `authStore`) on the profile screen
-- [ ] T042 [US4] Confirm the sign-out action from T020 is reachable from the profile screen (implemented in US1 — this task only verifies it's surfaced here)
-- [ ] T043 [US4] Confirm the "Forgot password" entry point from T019 is linked from `(auth)/sign-in.tsx`
+- [x] T041 [US4] Display the signed-in user's email (from `authStore`) on the profile screen — shipped as part of T020, then moved to the top of the screen per user feedback
+- [x] T042 [US4] Confirm the sign-out action from T020 is reachable from the profile screen (implemented in US1 — this task only verifies it's surfaced here)
+- [x] T043 [US4] Confirm the "Forgot password" entry point from T019 is linked from `(auth)/sign-in.tsx`
 - [ ] T044 [P] [US4] Extend a profile-screen test to assert the signed-in email renders and sign-out is reachable
 - [ ] T045 [US4] Validate manually in Expo: view the profile screen and confirm the signed-in email is correct; trigger "Forgot password" and confirm a reset email arrives and can be used to sign in with a new password
 
@@ -178,11 +178,11 @@ description: "Task list for Accounts and Cloud Backend (Supabase migration)"
 
 **Purpose**: Final validation across all four stories
 
-- [ ] T050 [P] Run `npx tsc --noEmit` and fix any type errors surfaced by the Supabase migration
-- [ ] T051 [P] Run `npx eslint` on all touched files and fix new violations (not pre-existing ones)
-- [ ] T052 Run the full Jest suite (`npm test`) against the Supabase-backed test setup and fix regressions
-- [ ] T053 Full manual Expo regression pass, confirming SC-001 through SC-005: sign up and reach the dashboard in under a minute; complete the local-data import prompt; create a workout; log a full session with sets and rest timers; finish it; check History's calendar and the dashboard's streak/trend chart; sign out; sign in as a second account and confirm total isolation from the first; trigger a password reset — all inside standard Expo Go, no custom dev client
-- [ ] T054 Update `specs/006-accounts-and-cloud-backend/spec.md` status from Draft to Delivered once all checkpoints pass
+- [x] T050 [P] Run `npx tsc --noEmit` and fix any type errors surfaced by the Supabase migration
+- [x] T051 [P] Run `npx eslint` on all touched files and fix new violations (not pre-existing ones)
+- [x] T052 Run the full Jest suite (`npm test`) against the Supabase-backed test setup and fix regressions
+- [ ] T053 ~~Full manual Expo regression pass, confirming SC-001 through SC-005~~ — confirmed SC-001 through SC-004 (sign-up→dashboard, workout CRUD, full session logging, History/dashboard); SC-005 (local-data import) is unreachable since User Story 3 was never built (see spec.md's Delivered scope note) — deferred, not failing. Two-account isolation (T036) was verified via RLS policy inspection + the automated `rlsIsolation.test.ts`, not a live two-account manual pass.
+- [x] T054 Update `specs/006-accounts-and-cloud-backend/spec.md` status from Draft to Delivered once all checkpoints pass
 
 ---
 

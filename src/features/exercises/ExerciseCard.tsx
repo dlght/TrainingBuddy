@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { theme } from "@/components/theme";
 import type { Exercise } from "@/models/exercise";
@@ -26,7 +26,15 @@ export function ExerciseCard({ accessibilityLabel, exercise, onPress }: Exercise
       onPress={() => onPress?.(exercise)}
       style={({ pressed }) => [styles.card, pressed && onPress ? styles.pressed : null]}
     >
-      {image.kind === "placeholder" ? (
+      {image.kind === "remote" ? (
+        <Image
+          accessibilityIgnoresInvertColors
+          resizeMode="cover"
+          source={{ uri: image.uri }}
+          style={styles.visualImage}
+          testID="exercise-card-image"
+        />
+      ) : image.kind === "placeholder" ? (
         <ExerciseImageFallback compact />
       ) : (
         <View style={styles.visual}>
@@ -65,6 +73,12 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.sm,
     backgroundColor: "#e7f3ee",
     padding: theme.spacing.xs
+  },
+  visualImage: {
+    width: 72,
+    minHeight: 64,
+    borderRadius: theme.radius.sm,
+    backgroundColor: "#e7f3ee"
   },
   visualText: {
     color: theme.colors.primary,

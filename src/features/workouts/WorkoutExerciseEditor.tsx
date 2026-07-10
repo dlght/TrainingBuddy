@@ -49,6 +49,10 @@ export function WorkoutExerciseEditor({
   onMoveUp,
   onMoveDown
 }: WorkoutExerciseEditorProps) {
+  const updateRestSeconds = (value: string) => {
+    onChange({ ...exercise, targetRestSeconds: value });
+  };
+
   const updateSetPlan = (setIndex: number, field: "reps" | "weight", value: string) => {
     onChange({
       ...exercise,
@@ -86,6 +90,16 @@ export function WorkoutExerciseEditor({
         <Pressable accessibilityRole="button" accessibilityLabel="Remove" onPress={onRemove} style={styles.iconButton}>
           <Ionicons color="#b42318" name="trash-outline" size={20} />
         </Pressable>
+      </View>
+
+      <View style={styles.restField}>
+        <TargetInput
+          accessibilityLabel={`Rest seconds for ${exercise.exerciseName}`}
+          keyboardType="number-pad"
+          label="Rest between sets (sec)"
+          value={exercise.targetRestSeconds}
+          onChangeText={updateRestSeconds}
+        />
       </View>
 
       <View style={styles.setPlanList}>
@@ -220,6 +234,9 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: 17,
     fontWeight: "800"
+  },
+  restField: {
+    maxWidth: 200
   },
   setPlanList: {
     gap: theme.spacing.sm

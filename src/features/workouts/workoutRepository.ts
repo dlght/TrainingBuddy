@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
+import { requireUserId } from "@/lib/currentUser";
 import type {
   CreateWorkoutInput,
   Workout,
@@ -42,7 +43,14 @@ type WorkoutExerciseRow = {
   workout_exercise_set_plans?: SetPlanRow[];
 };
 
-function toWorkout(row: WorkoutRow): Workout {
+/**
+ * Sample (template) workouts are shared rows with no owning user, so
+ * `is_favourite` on the row itself can't represent "favourited by account
+ * X" without leaking to every other account (see
+ * sample_workout_favourites). Non-template rows keep reading the column
+ * directly, unchanged.
+ */
+function toWorkout(row: WorkoutRow, favouritedTemplateIds?: Set<string>): Workout {
   return {
     id: row.id,
     name: row.name,
@@ -50,7 +58,7 @@ function toWorkout(row: WorkoutRow): Workout {
     createdAt: row.created_at,
     isTemplate: row.is_template,
     sourceTemplateId: row.source_template_id,
-    isFavourite: row.is_favourite
+    isFavourite: row.is_template ? (favouritedTemplateIds?.has(row.id) ?? false) : row.is_favourite
   };
 }
 
@@ -103,6 +111,20 @@ function isForeignKeyViolation(error: unknown): boolean {
 }
 
 export function createWorkoutRepository(client: SupabaseClient) {
+  async function getFavouritedTemplateIds(): Promise<Set<string>> {
+    const userId = await requireUserId(client);
+    const { data, error } = await client
+      .from("sample_workout_favourites")
+      .select("workout_id")
+      .eq("user_id", userId);
+
+    if (error) {
+      throw error;
+    }
+
+    return new Set(((data ?? []) as { workout_id: string }[]).map((row) => row.workout_id));
+  }
+
   async function listWorkoutExercises(workoutId: string): Promise<WorkoutExercise[]> {
     const { data, error } = await client
       .from("workout_exercises")
@@ -124,7 +146,17 @@ export function createWorkoutRepository(client: SupabaseClient) {
       throw error;
     }
 
-    return data ? toWorkout(data as WorkoutRow) : null;
+    if (!data) {
+      return null;
+    }
+
+    const row = data as WorkoutRow;
+
+    if (!row.is_template) {
+      return toWorkout(row);
+    }
+
+    return toWorkout(row, await getFavouritedTemplateIds());
   }
 
   async function getWorkoutWithExercises(id: string): Promise<WorkoutWithExercises | null> {
@@ -272,21 +304,67 @@ export function createWorkoutRepository(client: SupabaseClient) {
         throw error;
       }
 
-      return ((data ?? []) as WorkoutRow[]).map(toWorkout);
+      const rows = (data ?? []) as WorkoutRow[];
+      const favouritedTemplateIds = rows.some((row) => row.is_template)
+        ? await getFavouritedTemplateIds()
+        : undefined;
+
+      return rows.map((row) => toWorkout(row, favouritedTemplateIds));
     },
 
     async listFavouriteWorkouts(): Promise<Workout[]> {
-      const { data, error } = await client
+      const userId = await requireUserId(client);
+
+      const { data: customRows, error: customError } = await client
         .from("workouts")
         .select("*")
         .eq("is_favourite", true)
+        .eq("user_id", userId)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        throw error;
+      if (customError) {
+        throw customError;
       }
 
-      return ((data ?? []) as WorkoutRow[]).map(toWorkout);
+      const { data: templateFavourites, error: favError } = await client
+        .from("sample_workout_favourites")
+        .select("workout_id")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (favError) {
+        throw favError;
+      }
+
+      const favouritedTemplateIds = new Set(
+        ((templateFavourites ?? []) as { workout_id: string }[]).map((row) => row.workout_id)
+      );
+
+      let templateRows: WorkoutRow[] = [];
+
+      if (favouritedTemplateIds.size > 0) {
+        const { data, error } = await client
+          .from("workouts")
+          .select("*")
+          .in("id", Array.from(favouritedTemplateIds));
+
+        if (error) {
+          throw error;
+        }
+
+        templateRows = (data ?? []) as WorkoutRow[];
+      }
+
+      // Templates keep the favourited-at order from sample_workout_favourites
+      // above (most recently favourited first), not the row-fetch order.
+      const orderedTemplateRows = Array.from(favouritedTemplateIds)
+        .map((id) => templateRows.find((row) => row.id === id))
+        .filter((row): row is WorkoutRow => row !== undefined);
+
+      return [
+        ...((customRows ?? []) as WorkoutRow[]).map((row) => toWorkout(row)),
+        ...orderedTemplateRows.map((row) => toWorkout(row, favouritedTemplateIds))
+      ];
     },
 
     async getSeededWorkouts(): Promise<Workout[]> {
@@ -296,7 +374,10 @@ export function createWorkoutRepository(client: SupabaseClient) {
         throw error;
       }
 
-      return ((data ?? []) as WorkoutRow[]).map(toWorkout);
+      const rows = (data ?? []) as WorkoutRow[];
+      const favouritedTemplateIds = await getFavouritedTemplateIds();
+
+      return rows.map((row) => toWorkout(row, favouritedTemplateIds));
     },
 
     async getTopWorkouts(
@@ -439,13 +520,37 @@ export function createWorkoutRepository(client: SupabaseClient) {
         throw new Error(`Workout ${workoutId} was not found.`);
       }
 
-      const { error } = await client
-        .from("workouts")
-        .update({ is_favourite: !workout.isFavourite })
-        .eq("id", workoutId);
+      if (workout.isTemplate) {
+        const userId = await requireUserId(client);
 
-      if (error) {
-        throw error;
+        if (workout.isFavourite) {
+          const { error } = await client
+            .from("sample_workout_favourites")
+            .delete()
+            .eq("user_id", userId)
+            .eq("workout_id", workoutId);
+
+          if (error) {
+            throw error;
+          }
+        } else {
+          const { error } = await client
+            .from("sample_workout_favourites")
+            .insert({ user_id: userId, workout_id: workoutId });
+
+          if (error) {
+            throw error;
+          }
+        }
+      } else {
+        const { error } = await client
+          .from("workouts")
+          .update({ is_favourite: !workout.isFavourite })
+          .eq("id", workoutId);
+
+        if (error) {
+          throw error;
+        }
       }
 
       const updated = await getWorkoutById(workoutId);

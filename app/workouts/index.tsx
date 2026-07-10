@@ -136,6 +136,7 @@ export default function WorkoutsScreen() {
             title="Sample workouts"
             workouts={workoutData.sampleWorkouts}
             emptyText="No sample workouts are available."
+            onToggleFavourite={handleToggleFavourite}
           />
           <WorkoutSection
             title="Custom workouts"

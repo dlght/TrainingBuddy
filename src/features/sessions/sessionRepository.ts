@@ -282,6 +282,20 @@ export function createSessionRepository(client: SupabaseClient) {
       return sessions.map((session) => ({ id: session.id, endedAt: session.ended_at as string }));
     },
 
+    async listAllCompletedSessionEndTimes(userId: string): Promise<string[]> {
+      const { data, error } = await client
+        .from("workout_sessions")
+        .select("ended_at")
+        .eq("user_id", userId)
+        .eq("status", "completed");
+
+      if (error) {
+        throw error;
+      }
+
+      return ((data ?? []) as { ended_at: string }[]).map((row) => row.ended_at);
+    },
+
     async listCompletedSetLogsSince(
       userId: string,
       sinceIso: string
@@ -303,6 +317,7 @@ export function createSessionRepository(client: SupabaseClient) {
         .eq("user_id", userId)
         .eq("status", "completed")
         .order("ended_at", { ascending: false })
+        .order("id", { ascending: false })
         .limit(limit);
 
       if (error) {
@@ -327,7 +342,8 @@ export function createSessionRepository(client: SupabaseClient) {
         .eq("status", "completed")
         .gte("ended_at", startIso)
         .lt("ended_at", endIsoExclusive)
-        .order("ended_at");
+        .order("ended_at", { ascending: false })
+        .order("id", { ascending: false });
 
       if (error) {
         throw error;

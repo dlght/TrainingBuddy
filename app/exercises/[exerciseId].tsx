@@ -1,6 +1,6 @@
 import { Link, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
@@ -93,7 +93,14 @@ export default function ExerciseDetailScreen() {
         </View>
       </View>
 
-      {image.kind === "placeholder" ? (
+      {image.kind === "remote" ? (
+        <Image
+          accessibilityIgnoresInvertColors
+          resizeMode="cover"
+          source={{ uri: image.uri }}
+          style={styles.visualImage}
+        />
+      ) : image.kind === "placeholder" ? (
         <ExerciseImageFallback />
       ) : (
         <View style={styles.visual}>
@@ -170,6 +177,11 @@ const styles = StyleSheet.create({
     borderRadius: theme.radius.md,
     backgroundColor: "#e7f3ee",
     padding: theme.spacing.md
+  },
+  visualImage: {
+    minHeight: 220,
+    borderRadius: theme.radius.md,
+    backgroundColor: "#e7f3ee"
   },
   visualText: {
     color: theme.colors.primary,

@@ -148,4 +148,27 @@ describe("historyService.listCompletedSessionsInRange", () => {
 
     expect(sessions).toEqual([]);
   });
+
+  it("lists sessions most-recent-first, not oldest-first", async () => {
+    const seed = seedSessionsFixture();
+
+    seed.workout_sessions.push({
+      id: "s6",
+      workout_id: "workout-a",
+      user_id: TEST_USER_ID,
+      started_at: "2026-01-01T12:00:00.000Z",
+      ended_at: "2026-01-01T13:00:00.000Z",
+      status: "completed",
+      workout_name_snapshot: "Full Body A",
+      rating: null
+    });
+
+    const client = createFakeSupabaseClient(seed, TEST_USER_ID);
+    const service = createHistoryService(client);
+
+    const sessions = await service.listCompletedSessionsInRange("2026-01-01T00:00:00.000Z", "2026-01-02T00:00:00.000Z");
+
+    // s6 (13:00) ended after s1 (01:00) on the same day — s6 must come first.
+    expect(sessions.map((session) => session.id)).toEqual(["s6", "s1"]);
+  });
 });

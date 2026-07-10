@@ -4,7 +4,19 @@
 
 **Created**: 2026-07-09
 
-**Status**: Draft
+**Status**: Delivered
+
+**Delivered scope**: User Stories 1 and 2 shipped in full — email/password
+auth, session persistence, and every screen (workouts, sessions, history,
+dashboard, streak) reading and writing Supabase with RLS enforcing per-account
+isolation. User Story 4 (account basics) shipped functionally as a byproduct
+of User Story 1's work — signed-in email is shown, sign-out works, "Forgot
+password" is linked from sign-in — though it never got a dedicated automated
+test (T044) or a manual end-to-end password-reset-email check (T045).
+**User Story 3 (local data import) was not built and is deferred** to a
+future phase; SC-005 is deferred along with it. `src/db/` (the old SQLite
+layer) has been fully superseded but not yet physically deleted from the repo
+(Phase 7 in tasks.md).
 
 **Input**: User description: "phase 6 would be - making the app more
 productionalized -> move db to supabase, add backend to work for parallel

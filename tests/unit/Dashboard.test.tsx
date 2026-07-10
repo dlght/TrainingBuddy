@@ -63,9 +63,43 @@ jest.mock("@/features/progress/dashboardService", () => ({
   }
 }));
 
+const mockGetProgress = jest.fn();
+
+jest.mock("@/features/challenges/challengesService", () => ({
+  challengesService: {
+    getProgress: mockGetProgress
+  }
+}));
+
 const HomeScreen = require("../../app/index").default;
 
+const NO_BADGES_ACHIEVED = {
+  lifetimeWorkoutCount: 0,
+  longestStreakDays: 0,
+  badges: [
+    { id: "lifetime-workouts-10", category: "lifetime_workouts", threshold: 10, label: "10 workouts", achieved: false },
+    { id: "streak-1", category: "streak", threshold: 1, label: "1 day streak", achieved: false }
+  ]
+};
+
+const SOME_BADGES_ACHIEVED = {
+  lifetimeWorkoutCount: 15,
+  longestStreakDays: 3,
+  badges: [
+    { id: "lifetime-workouts-10", category: "lifetime_workouts", threshold: 10, label: "10 workouts", achieved: true },
+    { id: "lifetime-workouts-50", category: "lifetime_workouts", threshold: 50, label: "50 workouts", achieved: false },
+    { id: "lifetime-workouts-100", category: "lifetime_workouts", threshold: 100, label: "100 workouts", achieved: false },
+    { id: "streak-1", category: "streak", threshold: 1, label: "1 day streak", achieved: true },
+    { id: "streak-7", category: "streak", threshold: 7, label: "7 day streak", achieved: false }
+  ]
+};
+
 describe("Dashboard (home) screen", () => {
+  beforeEach(() => {
+    mockGetProgress.mockReset();
+    mockGetProgress.mockResolvedValue(SOME_BADGES_ACHIEVED);
+  });
+
   it("shows both consistency and streak tiles fully rendered", async () => {
     const view = await render(<HomeScreen />);
 
@@ -85,5 +119,25 @@ describe("Dashboard (home) screen", () => {
 
     await fireEvent.press(view.getByLabelText("View details for M"));
     expect(await view.findByText("3 sets · 200 volume")).toBeOnTheScreen();
+  });
+
+  it("shows a badge shelf with an earned count once a badge is earned", async () => {
+    const view = await render(<HomeScreen />);
+
+    expect(await view.findByText(/of 5 badges earned/)).toBeOnTheScreen();
+    expect(view.getByText("2")).toBeOnTheScreen();
+    // 2 achieved medallions plus the bottom-nav "Challenges" icon, which also uses 🏆.
+    expect(view.getAllByText("🏆")).toHaveLength(3);
+    expect(view.getAllByText("🔒")).toHaveLength(3);
+    expect(view.queryByText("Start working out to earn badges.")).toBeNull();
+  });
+
+  it("shows a prompt instead of a badge shelf when no badges are achieved yet", async () => {
+    mockGetProgress.mockResolvedValue(NO_BADGES_ACHIEVED);
+
+    const view = await render(<HomeScreen />);
+
+    expect(await view.findByText("Start working out to earn badges.")).toBeOnTheScreen();
+    expect(view.queryByText(/badges earned/)).toBeNull();
   });
 });

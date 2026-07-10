@@ -66,3 +66,32 @@ export function computeStreakDays(endedAtIsoList: string[], todayLocalDateIso: s
 
   return streak;
 }
+
+/**
+ * Longest run of consecutive calendar days with at least one completed
+ * session, anywhere in the given history — not anchored to today the way
+ * computeStreakDays is. Used for challenge streak badges, which must stay
+ * achieved even after the account's current streak later resets.
+ */
+export function computeLongestStreakDays(endedAtIsoList: string[]): number {
+  const workedOutDays = Array.from(
+    new Set(endedAtIsoList.map(toLocalDateKey).filter((key): key is string => key !== null))
+  ).sort();
+
+  let longest = 0;
+  let current = 0;
+  let previousKey: string | null = null;
+
+  for (const key of workedOutDays) {
+    if (previousKey !== null && shiftDateKey(previousKey, 1) === key) {
+      current += 1;
+    } else {
+      current = 1;
+    }
+
+    longest = Math.max(longest, current);
+    previousKey = key;
+  }
+
+  return longest;
+}

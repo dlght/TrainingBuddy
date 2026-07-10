@@ -176,4 +176,43 @@ describe("WorkoutBuilder screen", () => {
     });
     expect(mockReplace).toHaveBeenCalledWith("/");
   });
+
+  it("lets each exercise's rest time be edited independently", async () => {
+    const view = await render(<NewWorkoutScreen />);
+    await view.findByLabelText("Add exercises");
+
+    await fireEvent.changeText(view.getByLabelText("Workout name"), "Starter Strength");
+
+    await fireEvent.press(view.getByLabelText("Add exercises"));
+    await pickExercise("bodyweight-squat");
+    await view.rerender(<NewWorkoutScreen />);
+    await view.findByText("Bodyweight Squat");
+
+    await fireEvent.press(view.getByLabelText("Add exercises"));
+    await pickExercise("incline-push-up");
+    await view.rerender(<NewWorkoutScreen />);
+    await view.findByText("Incline Push-Up");
+
+    await fireEvent.changeText(view.getByLabelText("Rest seconds for Bodyweight Squat"), "30");
+    await fireEvent.changeText(view.getByLabelText("Rest seconds for Incline Push-Up"), "120");
+
+    await fireEvent.press(view.getByText("Save workout"));
+
+    await waitFor(() => expect(mockCreateCustomWorkout).toHaveBeenCalledTimes(1));
+    expect(mockCreateCustomWorkout).toHaveBeenCalledWith({
+      name: "Starter Strength",
+      exercises: [
+        {
+          exerciseId: "bodyweight-squat",
+          targetRestSeconds: "30",
+          setPlans: [{ reps: "10", weight: null }]
+        },
+        {
+          exerciseId: "incline-push-up",
+          targetRestSeconds: "120",
+          setPlans: [{ reps: "10", weight: "" }]
+        }
+      ]
+    });
+  });
 });

@@ -49,11 +49,13 @@ export default function ActiveSessionScreen() {
   const [workoutCompletedAt, setWorkoutCompletedAt] = useState<string | null>(null);
   const [previousIsWorkoutComplete, setPreviousIsWorkoutComplete] = useState(isWorkoutComplete);
   const [selectedRating, setSelectedRating] = useState<EffortRatingValue | null>(null);
+  const [isConfirmingEarlyEnd, setIsConfirmingEarlyEnd] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const currentExerciseIndex = useActiveSessionStore((state) => state.currentExerciseIndex);
   const restDurationSeconds = useActiveSessionStore((state) => state.restDurationSeconds);
   const resetForSession = useActiveSessionStore((state) => state.resetForSession);
   const setCurrentExerciseIndex = useActiveSessionStore((state) => state.setCurrentExerciseIndex);
+  const setRestDurationSeconds = useActiveSessionStore((state) => state.setRestDurationSeconds);
   const resetSessionStore = useActiveSessionStore((state) => state.reset);
 
   const handleRestComplete = () => {
@@ -160,6 +162,20 @@ export default function ActiveSessionScreen() {
     return sessionDetails.exercises[Math.min(currentExerciseIndex, sessionDetails.exercises.length - 1)];
   }, [currentExerciseIndex, sessionDetails]);
 
+  const currentExerciseId = currentExercise?.id ?? null;
+  const currentExerciseRestSeconds = currentExercise?.targetRestSeconds ?? null;
+
+  // Keyed on id/restSeconds rather than currentExercise itself: sessionDetails
+  // (and therefore currentExercise) gets a new object reference on every
+  // logged set even when the active exercise hasn't changed, and re-syncing
+  // the rest duration on every one of those would fight the restTimer.start()
+  // call already inside logSet.
+  useEffect(() => {
+    if (currentExerciseRestSeconds !== null) {
+      setRestDurationSeconds(currentExerciseRestSeconds);
+    }
+  }, [currentExerciseId, currentExerciseRestSeconds, setRestDurationSeconds]);
+
   const currentSetPlan = useMemo(() => {
     if (!currentExercise) {
       return null;
@@ -236,6 +252,11 @@ export default function ActiveSessionScreen() {
       setError(finishError instanceof Error ? finishError.message : "Session could not be finished.");
       setIsFinishing(false);
     }
+  };
+
+  const confirmEndWorkoutEarly = () => {
+    setIsConfirmingEarlyEnd(false);
+    setIsWorkoutComplete(true);
   };
 
   const discardSession = async () => {
@@ -319,11 +340,45 @@ export default function ActiveSessionScreen() {
             onSubmit={logSet}
           />
 
-          <FinishDiscardActions
-            isFinishing={isFinishing}
-            onDiscard={discardSession}
-            onFinish={finishSession}
-          />
+          {isConfirmingEarlyEnd ? (
+            <View style={styles.earlyEndConfirmCard}>
+              <Text style={styles.earlyEndConfirmText}>
+                End this workout now? Sets you haven&apos;t logged yet won&apos;t be saved.
+              </Text>
+              <View style={styles.actions}>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Keep going"
+                  onPress={() => setIsConfirmingEarlyEnd(false)}
+                  style={styles.secondaryButton}
+                >
+                  <Text style={styles.secondaryButtonText}>Keep going</Text>
+                </Pressable>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Confirm end workout early"
+                  onPress={confirmEndWorkoutEarly}
+                  style={styles.dangerButton}
+                >
+                  <Text style={styles.dangerButtonText}>End workout</Text>
+                </Pressable>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.actions}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="End workout early"
+                onPress={() => setIsConfirmingEarlyEnd(true)}
+                style={styles.secondaryButton}
+              >
+                <Text style={styles.secondaryButtonText}>End workout</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" onPress={discardSession} style={styles.dangerButton}>
+                <Text style={styles.dangerButtonText}>Discard session</Text>
+              </Pressable>
+            </View>
+          )}
         </>
       ) : null}
 
@@ -460,6 +515,34 @@ const styles = StyleSheet.create({
     color: "#b42318",
     fontSize: 15,
     fontWeight: "800"
+  },
+  earlyEndConfirmCard: {
+    borderRadius: theme.radius.md,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    gap: theme.spacing.sm,
+    padding: theme.spacing.md
+  },
+  earlyEndConfirmText: {
+    color: theme.colors.text,
+    fontSize: 15,
+    lineHeight: 21
+  },
+  secondaryButton: {
+    flex: 1,
+    minHeight: 50,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: theme.radius.sm,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    paddingHorizontal: theme.spacing.md
+  },
+  secondaryButtonText: {
+    color: theme.colors.text,
+    fontSize: 15,
+    fontWeight: "700"
   },
   disabled: {
     opacity: 0.65
