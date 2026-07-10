@@ -1,6 +1,7 @@
-import type { Exercise, MuscleGroupName } from "../../models/exercise";
-import { PLACEHOLDER_EXERCISE_IMAGE } from "./sampleWorkouts";
+import type { Exercise, MuscleGroupName } from "../../src/models/exercise";
 import type { WgerExerciseInfo, WgerImage, WgerTranslation } from "./wgerClient";
+
+const PLACEHOLDER_EXERCISE_IMAGE = "";
 
 export type TransformWgerExerciseOptions = {
   id?: string;
@@ -30,7 +31,7 @@ function stripHtml(value: string): string {
     .trim();
 }
 
-function pickEnglishTranslation(translations: WgerTranslation[] = []): WgerTranslation | undefined {
+export function pickEnglishTranslation(translations: WgerTranslation[] = []): WgerTranslation | undefined {
   return translations.find((translation) => {
     const language = String(translation.language ?? translation.language_code ?? "").toLowerCase();
 
@@ -53,7 +54,7 @@ function mapMuscleGroup(exercise: WgerExerciseInfo): MuscleGroupName {
   return "legs";
 }
 
-function pickMainImage(images: WgerImage[] = []): WgerImage | undefined {
+export function pickMainImage(images: WgerImage[] = []): WgerImage | undefined {
   return images.find((image) => image.is_main && image.image) ?? images.find((image) => image.image);
 }
 

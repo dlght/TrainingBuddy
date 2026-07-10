@@ -7,6 +7,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
 import { ExerciseImageFallback } from "@/features/exercises/ExerciseImageFallback";
 import { exerciseLibraryService } from "@/features/exercises/exerciseLibraryService";
+import { exerciseLocalImages } from "@/features/exercises/exerciseLocalImages";
 import { resolveExerciseImage } from "@/features/exercises/exerciseImageResolver";
 import { formatMuscleGroupName } from "@/features/exercises/exerciseSelectors";
 import type { Exercise } from "@/models/exercise";
@@ -100,12 +101,15 @@ export default function ExerciseDetailScreen() {
           source={{ uri: image.uri }}
           style={styles.visualImage}
         />
-      ) : image.kind === "placeholder" ? (
-        <ExerciseImageFallback />
+      ) : image.kind === "local" && exerciseLocalImages[image.path] ? (
+        <Image
+          accessibilityIgnoresInvertColors
+          resizeMode="cover"
+          source={exerciseLocalImages[image.path]}
+          style={styles.visualImage}
+        />
       ) : (
-        <View style={styles.visual}>
-          <Text style={styles.visualText}>Exercise image</Text>
-        </View>
+        <ExerciseImageFallback />
       )}
 
       <View style={styles.section}>
@@ -170,24 +174,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: theme.spacing.xs
   },
-  visual: {
-    minHeight: 180,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: theme.radius.md,
-    backgroundColor: "#e7f3ee",
-    padding: theme.spacing.md
-  },
   visualImage: {
     minHeight: 220,
     borderRadius: theme.radius.md,
     backgroundColor: "#e7f3ee"
-  },
-  visualText: {
-    color: theme.colors.primary,
-    fontSize: 16,
-    fontWeight: "800",
-    textAlign: "center"
   },
   section: {
     gap: theme.spacing.sm

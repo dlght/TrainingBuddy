@@ -10,6 +10,7 @@
     "web": "expo start --web",
     "lint": "eslint .",
     "seed:exercises": "node scripts/seed-wger-images.ts",
+    "seed:exercise-library": "tsx scripts/wger/generateExerciseLibrarySeed.ts",
     "test": "jest"
   },
   "dependencies": {
@@ -17,13 +18,11 @@
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/native": "latest",
     "@supabase/supabase-js": "latest",
-    "drizzle-orm": "latest",
     "expo": "54.0.0",
     "expo-image": "~3.0.11",
     "expo-linear-gradient": "^57.0.0",
     "expo-linking": "~8.0.12",
     "expo-router": "~6.0.0",
-    "expo-sqlite": "~16.0.10",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -45,13 +44,13 @@
     "@testing-library/react-native": "latest",
     "@types/jest": "^29.5.14",
     "@types/react": "latest",
-    "drizzle-kit": "latest",
     "eslint": "^9.39.4",
     "eslint-config-expo": "latest",
     "jest": "^29.7.0",
     "jest-expo": "^57.0.1",
     "prettier": "latest",
     "test-renderer": "^1.2.0",
+    "tsx": "latest",
     "typescript": "^5.9.3"
   }
 }

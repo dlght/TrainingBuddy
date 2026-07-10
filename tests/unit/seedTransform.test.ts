@@ -1,4 +1,4 @@
-import { transformWgerExercise } from "../../src/db/seed/transformWgerExercise";
+import { transformWgerExercise } from "../../scripts/wger/transformWgerExercise";
 
 describe("transformWgerExercise", () => {
   it("maps a wger exercise into app seed exercise shape", () => {

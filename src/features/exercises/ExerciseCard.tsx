@@ -6,6 +6,7 @@ import type { Exercise } from "@/models/exercise";
 import { ExerciseLabel } from "@/components/ExerciseLabel";
 
 import { ExerciseImageFallback } from "./ExerciseImageFallback";
+import { exerciseLocalImages } from "./exerciseLocalImages";
 import { resolveExerciseImage } from "./exerciseImageResolver";
 import { formatMuscleGroupName } from "./exerciseSelectors";
 
@@ -34,12 +35,16 @@ export function ExerciseCard({ accessibilityLabel, exercise, onPress }: Exercise
           style={styles.visualImage}
           testID="exercise-card-image"
         />
-      ) : image.kind === "placeholder" ? (
-        <ExerciseImageFallback compact />
+      ) : image.kind === "local" && exerciseLocalImages[image.path] ? (
+        <Image
+          accessibilityIgnoresInvertColors
+          resizeMode="cover"
+          source={exerciseLocalImages[image.path]}
+          style={styles.visualImage}
+          testID="exercise-card-image"
+        />
       ) : (
-        <View style={styles.visual}>
-          <Text style={styles.visualText}>Exercise image</Text>
-        </View>
+        <ExerciseImageFallback compact />
       )}
       <View style={styles.content}>
         <View style={styles.titleRow}>
@@ -65,26 +70,11 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     padding: theme.spacing.md
   },
-  visual: {
-    width: 72,
-    minHeight: 64,
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: theme.radius.sm,
-    backgroundColor: "#e7f3ee",
-    padding: theme.spacing.xs
-  },
   visualImage: {
     width: 72,
     minHeight: 64,
     borderRadius: theme.radius.sm,
     backgroundColor: "#e7f3ee"
-  },
-  visualText: {
-    color: theme.colors.primary,
-    fontSize: 11,
-    fontWeight: "800",
-    textAlign: "center"
   },
   content: {
     flex: 1,

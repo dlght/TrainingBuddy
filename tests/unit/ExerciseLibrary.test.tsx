@@ -14,23 +14,52 @@ jest.mock("expo-router", () => {
 });
 
 jest.mock("@/features/exercises/exerciseLibraryService", () => {
-  const { starterSeedData } = require("@/db/seed/sampleWorkouts");
   const {
     getFirstAvailableMuscleGroup,
     groupExercisesByMuscleGroup,
     sortMuscleGroups
   } = require("@/features/exercises/exerciseSelectors");
 
-  const groupedExercises = groupExercisesByMuscleGroup(
-    starterSeedData.exercises,
-    starterSeedData.muscleGroups
-  );
+  function buildExercise(overrides: Record<string, unknown> = {}) {
+    return {
+      id: "fixture-exercise",
+      name: "Fixture Exercise",
+      muscleGroupId: "chest",
+      equipment: "bodyweight",
+      imageUrl: "",
+      instructions: "Move with control.",
+      isWarmup: false,
+      videoUrl: null,
+      source: "wger",
+      sourceId: "seed-fixture-exercise",
+      licenseAuthor: "wger exercise contributors",
+      licenseUrl: "https://wger.de/",
+      ...overrides
+    };
+  }
+
+  const fixtureMuscleGroups = [
+    { id: "chest", name: "chest" },
+    { id: "legs", name: "legs" }
+  ];
+
+  const fixtureExercises = [
+    buildExercise({ id: "barbell-bench-press", name: "Barbell Bench Press", muscleGroupId: "chest" }),
+    buildExercise({
+      id: "bodyweight-squat",
+      name: "Bodyweight Squat",
+      muscleGroupId: "legs",
+      isWarmup: true
+    })
+  ];
+
+  const groupedExercises = groupExercisesByMuscleGroup(fixtureExercises, fixtureMuscleGroups);
 
   return {
     exerciseLibraryService: {
       getLibraryData: jest.fn().mockResolvedValue({
-        muscleGroups: sortMuscleGroups(starterSeedData.muscleGroups),
-        exercises: starterSeedData.exercises,
+        muscleGroups: sortMuscleGroups(fixtureMuscleGroups),
+        exercises: fixtureExercises,
         groupedExercises,
         defaultMuscleGroupId: getFirstAvailableMuscleGroup(groupedExercises)
       }),
