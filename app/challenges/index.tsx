@@ -1,6 +1,7 @@
 import { useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
@@ -71,6 +72,7 @@ export default function ChallengesScreen() {
   );
 
   return (
+    <SafeAreaView style={styles.flex} edges={["bottom"]}>
     <ScrollView contentContainerStyle={styles.root}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Challenges</Text>
@@ -99,10 +101,14 @@ export default function ChallengesScreen() {
         </>
       ) : null}
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1
+  },
   root: {
     flexGrow: 1,
     backgroundColor: theme.colors.background,

@@ -21,3 +21,7 @@ export type Exercise = {
 };
 
 export type SeedExercise = Exercise;
+
+export function isBodyweightExercise(equipment: string | null | undefined): boolean {
+  return equipment?.toLowerCase().includes("bodyweight") ?? false;
+}

@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ErrorState } from "@/components/ErrorState";
 import { theme } from "@/components/theme";
@@ -47,6 +48,8 @@ export default function SignUpScreen() {
   };
 
   return (
+    <SafeAreaView style={styles.flex} edges={["top", "bottom"]}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
     <View style={styles.root}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>TrainingBuddy</Text>
@@ -119,10 +122,15 @@ export default function SignUpScreen() {
         <Text style={styles.link}>Already have an account? Sign in</Text>
       </Pressable>
     </View>
+    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1
+  },
   root: {
     flex: 1,
     justifyContent: "center",

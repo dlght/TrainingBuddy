@@ -1,4 +1,4 @@
-export type WorkoutSessionStatus = "active" | "completed" | "discarded";
+export type WorkoutSessionStatus = "active" | "paused" | "completed" | "discarded";
 
 export type WorkoutSession = {
   id: string;
@@ -9,6 +9,7 @@ export type WorkoutSession = {
   status: WorkoutSessionStatus;
   workoutNameSnapshot: string;
   rating: number | null;
+  pausedAt: string | null;
 };
 
 export type SetLog = {

@@ -1,6 +1,17 @@
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
@@ -235,6 +246,8 @@ export default function NewWorkoutScreen() {
   };
 
   return (
+    <SafeAreaView style={styles.flex} edges={["bottom"]}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
     <ScrollView contentContainerStyle={styles.root} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Builder</Text>
@@ -289,6 +302,17 @@ export default function NewWorkoutScreen() {
         ))}
       </View>
 
+      <View style={styles.exerciseSearchSection}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Add exercises"
+          onPress={handleOpenAddExercise}
+          style={styles.addExerciseButton}
+        >
+          <Text style={styles.addExerciseButtonText}>+ Add exercise</Text>
+        </Pressable>
+      </View>
+
       <Pressable
         accessibilityRole="button"
         disabled={isSaving}
@@ -301,22 +325,16 @@ export default function NewWorkoutScreen() {
           <Text style={styles.saveButtonText}>{editWorkoutId ? "Update workout" : "Save workout"}</Text>
         )}
       </Pressable>
-
-      <View style={styles.exerciseSearchSection}>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Add exercises"
-          onPress={handleOpenAddExercise}
-          style={styles.addExerciseButton}
-        >
-          <Text style={styles.addExerciseButtonText}>+ Add exercise</Text>
-        </Pressable>
-      </View>
     </ScrollView>
+    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1
+  },
   root: {
     flexGrow: 1,
     backgroundColor: theme.colors.background,

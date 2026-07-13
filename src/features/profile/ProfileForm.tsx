@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -8,6 +10,7 @@ import {
   TextInput,
   View
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/EmptyState";
 import { theme } from "@/components/theme";
@@ -98,6 +101,8 @@ export function ProfileForm({
   };
 
   return (
+    <SafeAreaView style={styles.flex} edges={["bottom"]}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
     <ScrollView contentContainerStyle={styles.root} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Profile</Text>
@@ -198,6 +203,8 @@ export function ProfileForm({
         {isSaving ? <ActivityIndicator color={theme.colors.primaryText} /> : <Text style={styles.submitText}>{submitLabel}</Text>}
       </Pressable>
     </ScrollView>
+    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -243,6 +250,9 @@ function SegmentedControl<TValue extends string>({
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1
+  },
   root: {
     flexGrow: 1,
     backgroundColor: theme.colors.background,

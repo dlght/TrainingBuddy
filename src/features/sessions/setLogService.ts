@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createExerciseLibraryService } from "@/features/exercises/exerciseLibraryService";
 import { createWorkoutRepository } from "@/features/workouts/workoutRepository";
 import { supabase } from "@/lib/supabase";
+import { isBodyweightExercise } from "@/models/exercise";
 import type { SetLog } from "@/models/session";
 
 import {
@@ -52,7 +53,7 @@ export function createSetLogService(client: SupabaseClient): SetLogService {
         input.setNumber ??
         setLogs.filter((setLog) => setLog.workoutExerciseId === workoutExercise.id).length + 1;
       const exercise = await exerciseLibraryService.getExerciseById(workoutExercise.exerciseId);
-      const isBodyweight = exercise?.equipment === "bodyweight";
+      const isBodyweight = isBodyweightExercise(exercise?.equipment);
       const validation = validateSetLogValues(
         {
           setNumber: nextSetNumber,

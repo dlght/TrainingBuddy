@@ -20,6 +20,7 @@ jest.mock("expo-router", () => {
     __esModule: true,
     Link: ({ children }: { children: React.ReactNode }) => React.createElement(Text, null, children),
     useRouter: () => ({ replace: jest.fn() }),
+    useNavigation: () => ({ addListener: () => () => {}, dispatch: jest.fn() }),
     useLocalSearchParams: () => ({ exerciseId: "placeholder" }),
     useFocusEffect: (effect: () => void | (() => void)) => {
       React.useEffect(() => effect(), []);

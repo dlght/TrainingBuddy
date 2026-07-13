@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
@@ -146,6 +147,7 @@ export default function HistoryScreen() {
   const selectedSessions = selectedDateKey ? sessionsByDate.get(selectedDateKey) ?? [] : [];
 
   return (
+    <SafeAreaView style={styles.flex} edges={["bottom"]}>
     <ScrollView contentContainerStyle={styles.root}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>History</Text>
@@ -285,10 +287,14 @@ export default function HistoryScreen() {
         );
       })}
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1
+  },
   root: {
     flexGrow: 1,
     backgroundColor: theme.colors.background,

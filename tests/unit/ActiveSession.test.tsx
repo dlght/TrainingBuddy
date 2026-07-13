@@ -10,7 +10,8 @@ const mockLogSet = jest.fn();
 jest.mock("expo-router", () => ({
   __esModule: true,
   useLocalSearchParams: () => ({ workoutId: "workout-1" }),
-  useRouter: () => ({ replace: mockReplace })
+  useRouter: () => ({ replace: mockReplace }),
+  useNavigation: () => ({ addListener: () => () => {}, dispatch: jest.fn() })
 }));
 
 jest.mock("@/features/sessions/sessionService", () => ({

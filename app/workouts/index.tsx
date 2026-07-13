@@ -2,6 +2,7 @@ import { useRouter } from "expo-router";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
@@ -110,6 +111,7 @@ export default function WorkoutsScreen() {
   }, []);
 
   return (
+    <SafeAreaView style={styles.flex} edges={["bottom"]}>
     <ScrollView contentContainerStyle={styles.root}>
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Workouts</Text>
@@ -147,10 +149,14 @@ export default function WorkoutsScreen() {
         </>
       ) : null}
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1
+  },
   root: {
     flexGrow: 1,
     backgroundColor: theme.colors.background,

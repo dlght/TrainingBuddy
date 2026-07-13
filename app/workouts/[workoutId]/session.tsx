@@ -1,6 +1,7 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
@@ -39,8 +40,10 @@ function firstIncompleteExerciseIndex(sessionDetails: ActiveSessionDetails): num
 
 export default function ActiveSessionScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { workoutId } = useLocalSearchParams<{ workoutId?: string }>();
   const id = firstParam(workoutId);
+  const isIntentionalLeaveRef = useRef(false);
   const [sessionDetails, setSessionDetails] = useState<ActiveSessionDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingSet, setIsSavingSet] = useState(false);
@@ -142,6 +145,33 @@ export default function ActiveSessionScreen() {
     };
   }, [id, resetForSession]);
 
+  const sessionDetailsRef = useRef<ActiveSessionDetails | null>(null);
+
+  useEffect(() => {
+    sessionDetailsRef.current = sessionDetails;
+  }, [sessionDetails]);
+
+  // Leaving the screen via header back, hardware back, or swipe-back (as
+  // opposed to Finish/Discard, which set isIntentionalLeaveRef first) should
+  // pause the session rather than let it keep counting elapsed/rest time
+  // unattended. `beforeRemove` fires for all three navigation-away paths.
+  // Native-stack doesn't support preventDefault + a later re-dispatch (it
+  // desyncs native/JS navigation state), so the pause write is fired without
+  // blocking the removal that's already underway.
+  useEffect(() => {
+    const unsubscribe = navigation.addListener("beforeRemove", () => {
+      const currentSession = sessionDetailsRef.current?.session;
+
+      if (isIntentionalLeaveRef.current || !currentSession || currentSession.status !== "active") {
+        return;
+      }
+
+      void sessionService.pauseActiveSession(currentSession.id);
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
   // React's documented "adjusting state when a prop changes" pattern: a state
   // update during render (guarded by comparing against the previous render's
   // value), not inside a useEffect, so the freeze timestamp is captured
@@ -241,6 +271,7 @@ export default function ActiveSessionScreen() {
     setError(null);
 
     try {
+      isIntentionalLeaveRef.current = true;
       await sessionService.completeSession(sessionDetails.session.id, {
         rating: selectedRating,
         endedAt: workoutCompletedAt ?? undefined
@@ -248,6 +279,7 @@ export default function ActiveSessionScreen() {
       resetSessionStore();
       router.replace("/");
     } catch (finishError: unknown) {
+      isIntentionalLeaveRef.current = false;
       console.error("Session could not be finished.", finishError);
       setError(finishError instanceof Error ? finishError.message : "Session could not be finished.");
       setIsFinishing(false);
@@ -267,16 +299,27 @@ export default function ActiveSessionScreen() {
     setError(null);
 
     try {
+      isIntentionalLeaveRef.current = true;
       await sessionService.discardSession(sessionDetails.session.id);
       resetSessionStore();
       router.replace("/");
     } catch (error) {
+      isIntentionalLeaveRef.current = false;
       console.error("Session could not be discarded.", error);
       setError("Session could not be discarded.");
     }
   };
 
+  const confirmDiscardSession = () => {
+    Alert.alert("Discard session?", "This will permanently delete every set you've logged so far.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Discard", style: "destructive", onPress: () => void discardSession() }
+    ]);
+  };
+
   return (
+    <SafeAreaView style={styles.flex} edges={["bottom"]}>
+    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"}>
     <ScrollView contentContainerStyle={styles.root} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
         <Text style={styles.eyebrow}>Active session</Text>
@@ -309,7 +352,7 @@ export default function ActiveSessionScreen() {
 
           <FinishDiscardActions
             isFinishing={isFinishing}
-            onDiscard={discardSession}
+            onDiscard={confirmDiscardSession}
             onFinish={finishSession}
           />
         </>
@@ -374,7 +417,7 @@ export default function ActiveSessionScreen() {
               >
                 <Text style={styles.secondaryButtonText}>End workout</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={discardSession} style={styles.dangerButton}>
+              <Pressable accessibilityRole="button" onPress={confirmDiscardSession} style={styles.dangerButton}>
                 <Text style={styles.dangerButtonText}>Discard session</Text>
               </Pressable>
             </View>
@@ -389,6 +432,8 @@ export default function ActiveSessionScreen() {
         />
       ) : null}
     </ScrollView>
+    </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
@@ -423,6 +468,9 @@ function FinishDiscardActions({
 }
 
 const styles = StyleSheet.create({
+  flex: {
+    flex: 1
+  },
   root: {
     flexGrow: 1,
     backgroundColor: theme.colors.background,

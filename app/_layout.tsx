@@ -1,6 +1,7 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
@@ -16,6 +17,7 @@ export default function RootLayout() {
   }
 
   return (
+    <SafeAreaProvider>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <Stack
         screenOptions={{
@@ -69,5 +71,6 @@ export default function RootLayout() {
       </Stack>
       <StatusBar style="auto" />
     </GestureHandlerRootView>
+    </SafeAreaProvider>
   );
 }

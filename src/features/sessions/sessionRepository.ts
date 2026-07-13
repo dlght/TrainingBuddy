@@ -30,6 +30,7 @@ type SessionRow = {
   status: WorkoutSessionStatus;
   workout_name_snapshot: string;
   rating: number | null;
+  paused_at: string | null;
 };
 
 type SetLogRow = {
@@ -54,7 +55,8 @@ function toSession(row: SessionRow): WorkoutSession {
     endedAt: row.ended_at,
     status: row.status,
     workoutNameSnapshot: row.workout_name_snapshot,
-    rating: row.rating
+    rating: row.rating,
+    pausedAt: row.paused_at
   };
 }
 
@@ -109,7 +111,7 @@ export function createSessionRepository(client: SupabaseClient) {
       .from("workout_sessions")
       .select("*")
       .eq("user_id", userId)
-      .eq("status", "active")
+      .in("status", ["active", "paused"])
       .order("started_at", { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -194,7 +196,8 @@ export function createSessionRepository(client: SupabaseClient) {
         endedAt: null,
         status: "active",
         workoutNameSnapshot: input.workoutNameSnapshot,
-        rating: null
+        rating: null,
+        pausedAt: null
       };
 
       const { error } = await client.from("workout_sessions").insert({
@@ -205,7 +208,8 @@ export function createSessionRepository(client: SupabaseClient) {
         ended_at: session.endedAt,
         status: session.status,
         workout_name_snapshot: session.workoutNameSnapshot,
-        rating: session.rating
+        rating: session.rating,
+        paused_at: session.pausedAt
       });
 
       if (error) {
@@ -224,7 +228,40 @@ export function createSessionRepository(client: SupabaseClient) {
         .from("workout_sessions")
         .update({ status, ended_at: endedAt })
         .eq("id", sessionId)
+        .in("status", ["active", "paused"]);
+
+      if (error) {
+        throw error;
+      }
+    },
+
+    async pauseSession(sessionId: string): Promise<void> {
+      const { error } = await client
+        .from("workout_sessions")
+        .update({ status: "paused", paused_at: new Date().toISOString() })
+        .eq("id", sessionId)
         .eq("status", "active");
+
+      if (error) {
+        throw error;
+      }
+    },
+
+    async resumeSession(sessionId: string): Promise<void> {
+      const session = await getSessionById(sessionId);
+
+      if (!session || session.status !== "paused" || !session.pausedAt) {
+        return;
+      }
+
+      const pauseDurationMs = Date.now() - new Date(session.pausedAt).getTime();
+      const shiftedStartedAt = new Date(new Date(session.startedAt).getTime() + Math.max(0, pauseDurationMs)).toISOString();
+
+      const { error } = await client
+        .from("workout_sessions")
+        .update({ status: "active", paused_at: null, started_at: shiftedStartedAt })
+        .eq("id", sessionId)
+        .eq("status", "paused");
 
       if (error) {
         throw error;

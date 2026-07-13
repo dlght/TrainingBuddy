@@ -1,6 +1,7 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ErrorState } from "@/components/ErrorState";
 import { ExerciseLabel } from "@/components/ExerciseLabel";
@@ -162,12 +163,19 @@ export default function HomeScreen() {
     }
   };
 
+  const confirmDiscardActiveSession = () => {
+    Alert.alert("Discard session?", "This will permanently delete every set you've logged so far.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Discard", style: "destructive", onPress: () => void discardActiveSession() }
+    ]);
+  };
+
   if (isCheckingProfile) {
     return <LoadingState message="Checking your local profile" title="TrainingBuddy" />;
   }
 
   return (
-    <View style={styles.page}>
+    <SafeAreaView style={styles.page} edges={["bottom"]}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.heroCard}>
           <View style={styles.heroHeader}>
@@ -230,7 +238,7 @@ export default function HomeScreen() {
               <Pressable accessibilityRole="button" onPress={() => router.push(`/workouts/${activeSession.workout.id}/session`)} style={styles.primaryButton}>
                 <Text style={styles.primaryButtonText}>Resume workout</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" disabled={isDiscardingSession} onPress={discardActiveSession} style={[styles.dangerButton, isDiscardingSession ? styles.disabledButton : null]}>
+              <Pressable accessibilityRole="button" disabled={isDiscardingSession} onPress={confirmDiscardActiveSession} style={[styles.dangerButton, isDiscardingSession ? styles.disabledButton : null]}>
                 <Text style={styles.dangerButtonText}>{isDiscardingSession ? "Discarding session" : "Discard session"}</Text>
               </Pressable>
             </View>
@@ -349,7 +357,7 @@ export default function HomeScreen() {
           <Text style={styles.navLabel}>Challenges</Text>
         </Pressable>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

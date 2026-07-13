@@ -4,7 +4,7 @@ import { createExerciseLibraryService } from "@/features/exercises/exerciseLibra
 import { createWorkoutRepository } from "@/features/workouts/workoutRepository";
 import { requireUserId } from "@/lib/currentUser";
 import { supabase } from "@/lib/supabase";
-import type { Exercise } from "@/models/exercise";
+import { isBodyweightExercise, type Exercise } from "@/models/exercise";
 import type { SetLog, WorkoutSession } from "@/models/session";
 import type { WorkoutExercise, WorkoutWithExercises } from "@/models/workout";
 
@@ -27,6 +27,7 @@ export type SessionService = {
   getSessionDetails(sessionId: string): Promise<ActiveSessionDetails>;
   getActiveSession(): Promise<ActiveSessionDetails | null>;
   resumeActiveSession(): Promise<ActiveSessionDetails | null>;
+  pauseActiveSession(sessionId: string): Promise<void>;
   startWorkoutSession(workoutId: string): Promise<ActiveSessionDetails>;
   completeSession(
     sessionId: string,
@@ -69,7 +70,7 @@ export function createSessionService(client: SupabaseClient): SessionService {
         ...workoutExercise,
         exerciseName: exercisesById.get(workoutExercise.exerciseId)?.name ?? workoutExercise.exerciseId,
         loggedSetCount: countLoggedSets(setLogs, workoutExercise.id),
-        isBodyweight: exercisesById.get(workoutExercise.exerciseId)?.equipment === "bodyweight"
+        isBodyweight: isBodyweightExercise(exercisesById.get(workoutExercise.exerciseId)?.equipment)
       }))
     };
   }
@@ -96,8 +97,23 @@ export function createSessionService(client: SupabaseClient): SessionService {
       return hydrateSessionDetails(activeSession);
     },
 
-    resumeActiveSession() {
-      return this.getActiveSession();
+    async resumeActiveSession() {
+      const userId = await requireUserId(client);
+      const activeSession = await sessionRepository.getActiveSession(userId);
+
+      if (!activeSession) {
+        return null;
+      }
+
+      if (activeSession.status === "paused") {
+        await sessionRepository.resumeSession(activeSession.id);
+      }
+
+      return this.getSessionDetails(activeSession.id);
+    },
+
+    async pauseActiveSession(sessionId: string): Promise<void> {
+      await sessionRepository.pauseSession(sessionId);
     },
 
     async startWorkoutSession(workoutId) {
@@ -153,7 +169,7 @@ export function createSessionService(client: SupabaseClient): SessionService {
         throw new Error(`Session ${sessionId} was not found.`);
       }
 
-      if (session.status !== "active") {
+      if (session.status !== "active" && session.status !== "paused") {
         return;
       }
 

@@ -42,7 +42,7 @@ export function CurrentExercisePanel({
         <View style={styles.loggedSets}>
           {exerciseSetLogs.map((setLog) => (
             <Text key={setLog.id} style={styles.loggedSet}>
-              Set {setLog.setNumber}: {setLog.reps} reps, {setLog.weight} weight
+              Set {setLog.setNumber}: {setLog.reps} reps{setLog.weight !== null ? `, ${setLog.weight} weight` : ""}
             </Text>
           ))}
         </View>
