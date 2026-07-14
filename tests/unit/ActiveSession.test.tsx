@@ -49,6 +49,7 @@ jest.mock("@/features/sessions/sessionService", () => ({
           supersetGroupId: null,
           setPlans: [{ id: "plan-1", workoutExerciseId: "we-1", setNumber: 1, reps: 8, weight: null }],
           exerciseName: "Bodyweight Squat",
+          imageUrl: "",
           loggedSetCount: 0
         },
         {
@@ -64,6 +65,7 @@ jest.mock("@/features/sessions/sessionService", () => ({
           supersetGroupId: null,
           setPlans: [{ id: "plan-2", workoutExerciseId: "we-2", setNumber: 1, reps: 6, weight: 20 }],
           exerciseName: "Incline Push-Up",
+          imageUrl: "",
           loggedSetCount: 0
         }
       ],
@@ -341,6 +343,7 @@ describe("ActiveSession screen", () => {
           supersetGroupId: null,
           setPlans: [{ id: "plan-1", workoutExerciseId: "we-1", setNumber: 1, reps: 8, weight: null }],
           exerciseName: "Bodyweight Squat",
+          imageUrl: "",
           loggedSetCount: 0
         },
         {
@@ -356,6 +359,7 @@ describe("ActiveSession screen", () => {
           supersetGroupId: null,
           setPlans: [{ id: "plan-2", workoutExerciseId: "we-2", setNumber: 1, reps: 6, weight: 20 }],
           exerciseName: "Incline Push-Up",
+          imageUrl: "",
           loggedSetCount: 0
         }
       ],
@@ -432,6 +436,7 @@ describe("ActiveSession screen", () => {
           supersetGroupId: null,
           setPlans: [{ id: "plan-1", workoutExerciseId: "we-1", setNumber: 1, reps: 8, weight: null }],
           exerciseName: "Bodyweight Squat",
+          imageUrl: "",
           loggedSetCount: 0
         }
       ],

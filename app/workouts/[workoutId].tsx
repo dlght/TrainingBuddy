@@ -1,13 +1,16 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
 import { exerciseLibraryService } from "@/features/exercises/exerciseLibraryService";
+import { ExerciseImageFallback } from "@/features/exercises/ExerciseImageFallback";
+import { resolveExerciseImage } from "@/features/exercises/exerciseImageResolver";
 import { workoutBuilderService } from "@/features/workouts/workoutBuilderService";
+import { formatRepRange } from "@/features/workouts/repRangeFormat";
 import type { Exercise } from "@/models/exercise";
 import type { WorkoutWithExercises } from "@/models/workout";
 import { ExerciseLabel } from "@/components/ExerciseLabel";
@@ -80,6 +83,11 @@ export default function WorkoutDetailScreen() {
 
   const exerciseNamesById = useMemo(
     () => new Map(exercises.map((exercise) => [exercise.id, exercise.name])),
+    [exercises]
+  );
+
+  const exercisesById = useMemo(
+    () => new Map(exercises.map((exercise) => [exercise.id, exercise])),
     [exercises]
   );
 
@@ -193,17 +201,34 @@ export default function WorkoutDetailScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Exercises</Text>
-            {workout.exercises.map((exercise) => (
-              <View key={exercise.id} style={styles.exerciseRow}>
+            {workout.exercises.map((exercise) => {
+              const libraryExercise = exercisesById.get(exercise.exerciseId);
+              const image = libraryExercise ? resolveExerciseImage(libraryExercise) : null;
+
+              return (
+                <View key={exercise.id} style={styles.exerciseRow}>
+                  {image?.kind === "remote" ? (
+                    <Image
+                      accessibilityIgnoresInvertColors
+                      resizeMode="cover"
+                      source={{ uri: image.uri }}
+                      style={styles.exerciseImage}
+                    />
+                  ) : (
+                    <ExerciseImageFallback compact />
+                  )}
+                  <View style={styles.exerciseRowContent}>
                     <Text style={styles.exerciseName}>
                       {exercise.orderIndex + 1}. <ExerciseLabel name={exerciseNamesById.get(exercise.exerciseId) ?? exercise.exerciseId} style={styles.exerciseName} />
                     </Text>
-                <Text style={styles.exerciseMeta}>
-                  {exercise.targetSets} sets - {exercise.targetRepRangeLow}-{exercise.targetRepRangeHigh} reps -{" "}
-                  {exercise.targetRestSeconds}s rest
-                </Text>
-              </View>
-            ))}
+                    <Text style={styles.exerciseMeta}>
+                      {exercise.targetSets} sets - {formatRepRange(exercise.targetRepRangeLow, exercise.targetRepRangeHigh)}{" "}
+                      reps - {exercise.targetRestSeconds}s rest
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
           </View>
         </>
       ) : null}
@@ -249,12 +274,24 @@ const styles = StyleSheet.create({
     fontWeight: "800"
   },
   exerciseRow: {
+    flexDirection: "row",
     borderRadius: theme.radius.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
     backgroundColor: theme.colors.surface,
-    gap: theme.spacing.xs,
+    gap: theme.spacing.md,
     padding: theme.spacing.md
+  },
+  exerciseImage: {
+    width: 72,
+    minHeight: 64,
+    borderRadius: theme.radius.sm,
+    backgroundColor: "#e7f3ee"
+  },
+  exerciseRowContent: {
+    flex: 1,
+    gap: theme.spacing.xs,
+    justifyContent: "center"
   },
   exerciseName: {
     color: theme.colors.text,

@@ -6,7 +6,6 @@ import type { Exercise } from "@/models/exercise";
 import { ExerciseLabel } from "@/components/ExerciseLabel";
 
 import { ExerciseImageFallback } from "./ExerciseImageFallback";
-import { exerciseLocalImages } from "./exerciseLocalImages";
 import { resolveExerciseImage } from "./exerciseImageResolver";
 import { formatMuscleGroupName } from "./exerciseSelectors";
 
@@ -32,14 +31,6 @@ export function ExerciseCard({ accessibilityLabel, exercise, onPress }: Exercise
           accessibilityIgnoresInvertColors
           resizeMode="cover"
           source={{ uri: image.uri }}
-          style={styles.visualImage}
-          testID="exercise-card-image"
-        />
-      ) : image.kind === "local" && exerciseLocalImages[image.path] ? (
-        <Image
-          accessibilityIgnoresInvertColors
-          resizeMode="cover"
-          source={exerciseLocalImages[image.path]}
           style={styles.visualImage}
           testID="exercise-card-image"
         />

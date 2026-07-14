@@ -1,5 +1,18 @@
 import "@testing-library/jest-native/extend-expect";
 
+// `usePreventRemove` needs a real NavigationContainer/navigator tree (route
+// key, navigation object) that unit tests rendering a single screen in
+// isolation don't set up. Screens that use it don't test the confirm-leave
+// flow at this level (that needs a real navigator), so a no-op is fine here.
+jest.mock("@react-navigation/native", () => {
+  const actual = jest.requireActual("@react-navigation/native");
+
+  return {
+    ...actual,
+    usePreventRemove: jest.fn()
+  };
+});
+
 jest.mock("@react-native-async-storage/async-storage", () => ({
   getItem: jest.fn(async () => null),
   setItem: jest.fn(async () => undefined),

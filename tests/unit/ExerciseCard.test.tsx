@@ -1,7 +1,6 @@
 import { render } from "@testing-library/react-native";
 
 import { ExerciseCard } from "@/features/exercises/ExerciseCard";
-import { exerciseLocalImages } from "@/features/exercises/exerciseLocalImages";
 import type { Exercise } from "@/models/exercise";
 
 function buildExercise(overrides: Partial<Exercise> = {}): Exercise {
@@ -37,15 +36,7 @@ describe("ExerciseCard", () => {
     expect(view.getByTestId("exercise-card-image").props.source).toEqual({ uri: imageUrl });
   });
 
-  it("renders the bundled photo when the exercise has a local asset path", async () => {
-    const imageUrl = "assets/seed-exercises/processed/barbell-squat.jpg";
-    const view = await render(<ExerciseCard exercise={buildExercise({ imageUrl })} />);
-
-    expect(view.queryByText("Exercise image placeholder")).toBeNull();
-    expect(view.getByTestId("exercise-card-image").props.source).toBe(exerciseLocalImages[imageUrl]);
-  });
-
-  it("falls back to the placeholder when a local asset path has no bundled image", async () => {
+  it("falls back to the placeholder for a non-remote image path", async () => {
     const imageUrl = "assets/seed-exercises/processed/unmapped-exercise.jpg";
     const view = await render(<ExerciseCard exercise={buildExercise({ imageUrl })} />);
 

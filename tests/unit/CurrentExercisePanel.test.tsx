@@ -18,6 +18,7 @@ function buildExercise(overrides: Partial<ActiveSessionExercise> = {}): ActiveSe
     supersetGroupId: null,
     setPlans: [],
     exerciseName: "Push-up",
+    imageUrl: "",
     loggedSetCount: 1,
     isBodyweight: true,
     ...overrides
@@ -53,7 +54,8 @@ describe("CurrentExercisePanel", () => {
       />
     );
 
-    expect(view.getByText("Set 1: 8 reps")).toBeOnTheScreen();
+    expect(view.getByText("8 reps")).toBeOnTheScreen();
+    expect(view.queryByText("42.5")).not.toBeOnTheScreen();
   });
 
   it("shows reps and weight for a logged weighted set", async () => {
@@ -68,6 +70,7 @@ describe("CurrentExercisePanel", () => {
       />
     );
 
-    expect(view.getByText("Set 1: 8 reps, 42.5 weight")).toBeOnTheScreen();
+    expect(view.getByText("8 reps")).toBeOnTheScreen();
+    expect(view.getByText("42.5")).toBeOnTheScreen();
   });
 });

@@ -23,75 +23,78 @@ on conflict (id) do nothing;
 insert into public.exercises
   (id, name, muscle_group_id, equipment, image_url, instructions, is_warmup, source, source_id, license_author, license_url)
 values
-  ('bodyweight-squat', 'Bodyweight Squat', 'legs', 'bodyweight', 'assets/seed-exercises/placeholder.txt',
+  ('bodyweight-squat', 'Bodyweight Squat', 'legs', 'bodyweight', 'https://wger.de/media/exercise-images/1733/4ef77069-beb2-4504-a4f3-b181d5f35212.png',
    'Stand tall, sit your hips back, bend your knees, then stand up with control.', true,
-   'wger', 'seed-bodyweight-squat', 'wger exercise contributors', 'https://wger.de/'),
-  ('incline-dumbbell-press', 'Incline Dumbbell Press', 'chest', 'dumbbell', 'assets/seed-exercises/processed/incline-dumbbell-press.jpg',
+   'wger', 'seed-bodyweight-squat', 'Tierrasverdes', ''),
+  ('incline-dumbbell-press', 'Incline Dumbbell Press', 'chest', 'dumbbell', 'https://wger.de/media/exercise-images/16/Incline-press-1.png',
    'Perform compound warm-up sets. Choose bench angle that doesn''t stress shoulders. Neutral grip is optional. Retract shoulders throughout movement.', false,
-   'wger', 'seed-incline-dumbbell-press', 'wger exercise contributors', 'https://wger.de/'),
-  ('barbell-squat', 'Barbell Squat', 'legs', 'barbell', 'assets/seed-exercises/processed/barbell-squat.jpg',
+   'wger', 'seed-incline-dumbbell-press', 'Everkinetic', ''),
+  ('barbell-squat', 'Barbell Squat', 'legs', 'barbell', 'https://wger.de/media/exercise-images/1801/60043328-1cfb-4289-9865-aaf64d5aaa28.jpg',
    'Perform compound warm-up sets. Elevate heels if ankle mobility limits squat depth.', false,
-   'wger', 'seed-barbell-squat', 'wger exercise contributors', 'https://wger.de/'),
-  ('chest-supported-dumbbell-row', 'Chest Supported Dumbbell Row', 'back', 'dumbbell', 'assets/seed-exercises/processed/chest-supported-dumbbell-row.jpg',
+   'wger', 'seed-barbell-squat', 'Workout Guru', ''),
+  ('chest-supported-dumbbell-row', 'Chest Supported Dumbbell Row', 'back', 'dumbbell', 'https://wger.de/media/exercise-images/1283/e7262f70-7512-408a-8d00-4c499ef632fc.jpg',
    'Retract shoulder blades during pull. Stretch fully at bottom. Avoid excessive biceps involvement. Last set: optional 3-5 partial reps after failure.', false,
-   'wger', 'seed-chest-supported-dumbbell-row', 'wger exercise contributors', 'https://wger.de/'),
-  ('seated-leg-curl', 'Seated Leg Curl', 'legs', 'machine', 'assets/seed-exercises/processed/seated-leg-curl.jpg',
+   'wger', 'seed-chest-supported-dumbbell-row', 'carlos3c', 'https://hivamf.tistory.com/entry/%EC%9D%B8%ED%81%B4%EB%9D%BC%EC%9D%B8-%EB%B2%A4%EC%B9%98-%EB%8D%A4%EB%B2%A8-%EB%A1%9C%EC%9A%B0Incline-Bench-Dumbbell-Row'),
+  ('seated-leg-curl', 'Seated Leg Curl', 'legs', 'machine', 'https://wger.de/media/exercise-images/364/b318dde9-f5f2-489f-940a-cd864affb9e3.png',
    'Keep hips pressed into seat. Control the lowering phase. Squeeze hamstrings at top.', false,
-   'wger', 'seed-seated-leg-curl', 'wger exercise contributors', 'https://wger.de/'),
-  ('dumbbell-incline-curl', 'Dumbbell Incline Curl', 'arms', 'dumbbell', 'assets/seed-exercises/processed/dumbbell-incline-curl.jpg',
+   'wger', 'seed-seated-leg-curl', 'Franpol', ''),
+  ('dumbbell-incline-curl', 'Dumbbell Incline Curl', 'arms', 'dumbbell', 'https://wger.de/media/exercise-images/81/Biceps-curl-1.png',
    'Set bench to 45-60 degrees. Curl dumbbells toward shoulders, then lower slowly. Keep elbows stationary.', false,
-   'wger', 'seed-dumbbell-incline-curl', 'wger exercise contributors', 'https://wger.de/'),
-  ('dumbbell-overhead-triceps-extension', 'Dumbbell Overhead Triceps Extension', 'arms', 'dumbbell', 'assets/seed-exercises/processed/dumbbell-overhead-triceps-extension.jpg',
+   'wger', 'seed-dumbbell-incline-curl', 'Everkinetic', ''),
+  ('dumbbell-overhead-triceps-extension', 'Dumbbell Overhead Triceps Extension', 'arms', 'dumbbell', 'https://wger.de/media/exercise-images/1336/ebf88217-df26-4ef7-94cb-f0c2220c6abe.webp',
    'Hold one dumbbell with both hands overhead. Lower behind head, then extend arms upward. Keep elbows close to head.', false,
-   'wger', 'seed-dumbbell-overhead-triceps-extension', 'wger exercise contributors', 'https://wger.de/'),
-  ('behind-body-cable-curl', 'Behind-the-Body Cable Curl', 'arms', 'cable', 'assets/seed-exercises/processed/behind-body-cable-curl.jpg',
+   'wger', 'seed-dumbbell-overhead-triceps-extension', '', ''),
+  ('behind-body-cable-curl', 'Behind-the-Body Cable Curl', 'arms', 'cable', 'https://wger.de/media/exercise-images/129/Standing-biceps-curl-1.png',
    'Stand facing away from cable machine. Curl handles toward shoulders, then lower with control.', false,
-   'wger', 'seed-behind-body-cable-curl', 'wger exercise contributors', 'https://wger.de/'),
-  ('rope-overhead-triceps-extension', 'Rope Overhead Triceps Extension', 'arms', 'cable', 'assets/seed-exercises/processed/rope-overhead-triceps-extension.jpg',
+   'wger', 'seed-behind-body-cable-curl', 'Everkinetic', ''),
+  ('rope-overhead-triceps-extension', 'Rope Overhead Triceps Extension', 'arms', 'cable', 'https://wger.de/media/exercise-images/1519/fab7f641-27d4-40b5-8edd-1a0a137bfd94.gif',
    'Face away from cable machine. Hold rope overhead, extend arms, then return slowly. Keep elbows stationary.', false,
-   'wger', 'seed-rope-overhead-triceps-extension', 'wger exercise contributors', 'https://wger.de/'),
-  ('barbell-bench-press', 'Barbell Bench Press', 'chest', 'barbell', 'assets/seed-exercises/processed/barbell-bench-press.jpg',
+   'wger', 'seed-rope-overhead-triceps-extension', 'benjamin.yildiz@proton.me', ''),
+  ('barbell-bench-press', 'Barbell Bench Press', 'chest', 'barbell', 'https://wger.de/media/exercise-images/192/Bench-press-1.png',
    'Perform compound warm-up sets. Lower bar to mid-chest, then press upward. Keep feet flat on floor.', false,
-   'wger', 'seed-barbell-bench-press', 'wger exercise contributors', 'https://wger.de/'),
-  ('romanian-deadlift', 'Romanian Deadlift', 'legs', 'barbell', 'assets/seed-exercises/processed/romanian-deadlift.jpg',
+   'wger', 'seed-barbell-bench-press', 'Everkinetic', ''),
+  ('romanian-deadlift', 'Romanian Deadlift', 'legs', 'barbell', 'https://wger.de/media/exercise-images/1652/0306c8c0-70cc-45d4-92de-6fa72ceaa834.webp',
    'Keep knees slightly bent. Hinge at hips, lower bar while keeping back straight, then return to standing.', false,
-   'wger', 'seed-romanian-deadlift', 'wger exercise contributors', 'https://wger.de/'),
-  ('lat-pulldown', 'Lat Pulldown', 'back', 'cable', 'assets/seed-exercises/processed/lat-pulldown.jpg',
+   'wger', 'seed-romanian-deadlift', 'AlucardEvil40', ''),
+  ('lat-pulldown', 'Lat Pulldown', 'back', 'cable', 'https://wger.de/media/exercise-images/1127/4942b7c0-6bda-4983-88e5-86547c3d445e.png',
    'Pull bar down to upper chest. Lean back slightly. Control the return. Focus on lats.', false,
-   'wger', 'seed-lat-pulldown', 'wger exercise contributors', 'https://wger.de/'),
-  ('walking-lunges', 'Walking Lunges', 'legs', 'bodyweight', 'assets/seed-exercises/processed/walking-lunges.jpg',
+   'wger', 'seed-lat-pulldown', 'Franpol', ''),
+  ('walking-lunges', 'Walking Lunges', 'legs', 'bodyweight', 'https://wger.de/media/exercise-images/113/Walking-lunges-1.png',
    'Step forward, lower hips until both knees bend 90 degrees, then step forward with other leg. Keep torso upright.', false,
-   'wger', 'seed-walking-lunges', 'wger exercise contributors', 'https://wger.de/'),
-  ('behind-body-cable-lateral-raise', 'Behind-the-Body Cable Lateral Raise', 'shoulders', 'cable', 'assets/seed-exercises/processed/behind-body-cable-lateral-raise.jpg',
+   'wger', 'seed-walking-lunges', 'Everkinetic', ''),
+  ('behind-body-cable-lateral-raise', 'Behind-the-Body Cable Lateral Raise', 'shoulders', 'cable', 'https://wger.de/media/exercise-images/1378/7c1fcf34-fb7e-45e7-a0c1-51f296235315.jpg',
    'Stand facing away from cable. Raise arms to sides until parallel to floor. Control the lowering phase.', false,
-   'wger', 'seed-behind-body-cable-lateral-raise', 'wger exercise contributors', 'https://wger.de/'),
-  ('reverse-crunch', 'Reverse Crunch', 'core', 'bodyweight', 'assets/seed-exercises/processed/reverse-crunch.jpg',
+   'wger', 'seed-behind-body-cable-lateral-raise', 'carlos3c', 'https://commons.wikimedia.org/wiki/File:Girl_doing_one_arm_shoulder_raise.jpg'),
+  ('reverse-crunch', 'Reverse Crunch', 'core', 'bodyweight', 'https://wger.de/media/exercise-images/91/Crunches-1.png',
    'Lie on back, lift knees toward chest, curl hips off floor, then lower slowly. Keep lower back pressed to floor.', false,
-   'wger', 'seed-reverse-crunch', 'wger exercise contributors', 'https://wger.de/'),
-  ('seated-dumbbell-shoulder-press', 'Seated Dumbbell Shoulder Press', 'shoulders', 'dumbbell', 'assets/seed-exercises/processed/seated-dumbbell-shoulder-press.jpg',
+   'wger', 'seed-reverse-crunch', '', ''),
+  ('seated-dumbbell-shoulder-press', 'Seated Dumbbell Shoulder Press', 'shoulders', 'dumbbell', 'https://wger.de/media/exercise-images/1968/cd92e973-a0d9-4e5f-9011-5369012598d3.png',
    'Dumbbells preferred over barbell. Bench slightly reclined. Press with elbows flared. Lower dumbbells beside shoulders.', false,
-   'wger', 'seed-seated-dumbbell-shoulder-press', 'wger exercise contributors', 'https://wger.de/'),
-  ('one-arm-dumbbell-row', 'One-Arm Dumbbell Row', 'back', 'dumbbell', 'assets/seed-exercises/processed/one-arm-dumbbell-row.jpg',
+   'wger', 'seed-seated-dumbbell-shoulder-press', '', ''),
+  ('one-arm-dumbbell-row', 'One-Arm Dumbbell Row', 'back', 'dumbbell', 'https://wger.de/media/exercise-images/1186/1987a039-cf35-437e-bbdc-40c53dd7d053.jpg',
    'Pull elbow toward hip. Keep forearm vertical. Avoid torso rotation. Last set: optional partial reps after failure.', false,
-   'wger', 'seed-one-arm-dumbbell-row', 'wger exercise contributors', 'https://wger.de/'),
-  ('barbell-hip-thrust', 'Barbell Hip Thrust', 'legs', 'barbell', 'assets/seed-exercises/processed/barbell-hip-thrust.jpg',
+   'wger', 'seed-one-arm-dumbbell-row', 'anto.kreegyr', ''),
+  ('barbell-hip-thrust', 'Barbell Hip Thrust', 'legs', 'barbell', 'https://wger.de/media/exercise-images/1642/a81ad922-caf5-47f8-99b4-640cb0717436.webp',
    'Keep back neutral. Brace core. Squeeze glutes at top. Alternative: Dumbbell Step-Up.', false,
-   'wger', 'seed-barbell-hip-thrust', 'wger exercise contributors', 'https://wger.de/'),
-  ('dumbbell-step-up', 'Dumbbell Step-Up', 'legs', 'dumbbell', 'assets/seed-exercises/processed/dumbbell-step-up.jpg',
+   'wger', 'seed-barbell-hip-thrust', 'AlucardEvil40', ''),
+  ('dumbbell-step-up', 'Dumbbell Step-Up', 'legs', 'dumbbell', 'https://wger.de/media/exercise-images/981/f9377a7e-eb58-4cca-b805-2d36863aeb03.png',
    'Lean slightly forward and alternate legs. Step onto box, drive through heel to stand tall.', false,
-   'wger', 'seed-dumbbell-step-up', 'wger exercise contributors', 'https://wger.de/'),
-  ('leg-extension', 'Leg Extension', 'legs', 'machine', 'assets/seed-exercises/processed/leg-extension.jpg',
+   'wger', 'seed-dumbbell-step-up', '', ''),
+  ('leg-extension', 'Leg Extension', 'legs', 'machine', 'https://wger.de/media/exercise-images/369/78c915d1-e46d-4d30-8124-65d68664c3ef.png',
    'Lean back if machine allows for greater rectus femoris stretch. Extend legs fully, then lower with control.', false,
-   'wger', 'seed-leg-extension', 'wger exercise contributors', 'https://wger.de/'),
-  ('seated-cable-chest-fly', 'Seated Cable Chest Fly', 'chest', 'cable', 'assets/seed-exercises/processed/seated-cable-chest-fly.jpg',
+   'wger', 'seed-leg-extension', 'Franpol', ''),
+  ('seated-cable-chest-fly', 'Seated Cable Chest Fly', 'chest', 'cable', 'https://wger.de/media/exercise-images/1922/eb750ee5-3220-4128-aef1-5e2f1ccff40a.webp',
    'Foam pad behind back increases chest stretch. Alternative: Pec Deck. Last set: optional partial reps after failure.', false,
-   'wger', 'seed-seated-cable-chest-fly', 'wger exercise contributors', 'https://wger.de/'),
-  ('standing-calf-raise', 'Standing Calf Raise', 'legs', 'machine', 'assets/seed-exercises/processed/standing-calf-raise.jpg',
+   'wger', 'seed-seated-cable-chest-fly', 'shushu', ''),
+  ('standing-calf-raise', 'Standing Calf Raise', 'legs', 'machine', 'https://wger.de/media/exercise-images/622/9a429bd0-afd3-4ad0-8043-e9beec901c81.jpeg',
    'Pause at bottom for stretch. Rise onto balls of feet, squeeze calves at top.', false,
-   'wger', 'seed-standing-calf-raise', 'wger exercise contributors', 'https://wger.de/'),
-  ('reverse-cable-fly', 'Reverse Cable Fly', 'shoulders', 'cable', 'assets/seed-exercises/processed/reverse-cable-fly.jpg',
+   'wger', 'seed-standing-calf-raise', 'clafal', ''),
+  ('reverse-cable-fly', 'Reverse Cable Fly', 'shoulders', 'cable', 'https://wger.de/media/exercise-images/822/74affc0d-03b6-4f33-b5f4-a822a2615f68.png',
    'Cables slightly above shoulder height. Start with arms crossed for deeper stretch. Pull arms apart and back.', false,
-   'wger', 'seed-reverse-cable-fly', 'wger exercise contributors', 'https://wger.de/')
+   'wger', 'seed-reverse-cable-fly', 'cshep442', ''),
+  ('barbell-deadlift', 'Barbell Deadlift', 'legs', 'barbell', 'https://wger.de/media/exercise-images/184/1709c405-620a-4d07-9658-fade2b66a2df.jpeg',
+   'Keep your back neutral and core braced. Hinge at the hips, grip the bar just outside your legs, then drive through your heels to stand tall. Lower with control.', false,
+   'wger', 'seed-barbell-deadlift', 'philip', '')
 on conflict (id) do nothing;
 
 -- ---------------------------------------------------------------------------
@@ -164,10 +167,36 @@ insert into public.badges (id, category, threshold, label) values
   ('streak-30', 'streak', 30, '30 day streak')
 on conflict (id) do nothing;
 
+-- ---------------------------------------------------------------------------
+-- badges (spec 010) - new categories added by 0007_badge_categories.sql
+-- ---------------------------------------------------------------------------
+insert into public.badges (id, category, threshold, label) values
+  ('first-workout', 'lifetime_workouts', 1, 'First workout'),
+  ('streak-365', 'streak', 365, '365 day streak'),
+  ('monthly-10', 'monthly_workout_count', 10, '10 workouts in a month'),
+  ('volume-10000', 'total_volume_kg', 10000, '10,000kg lifted'),
+  ('volume-1000000', 'total_volume_kg', 1000000, '1 million kg lifetime')
+on conflict (id) do nothing;
+
+insert into public.badges (id, category, threshold, label, exercise_id) values
+  ('bench-sessions-100', 'exercise_session_count', 100, '100 bench sessions', 'barbell-bench-press')
+on conflict (id) do nothing;
+
+insert into public.badges (id, category, threshold, label) values
+  ('first-pr', 'pr_count', 1, 'First PR'),
+  ('pr-50', 'pr_count', 50, '50 PRs')
+on conflict (id) do nothing;
+
+insert into public.badges (id, category, threshold, label, exercise_id, ratio_multiplier) values
+  ('bench-bodyweight', 'bodyweight_ratio', 1, 'Bench bodyweight', 'barbell-bench-press', 1.0),
+  ('squat-1-5x-bodyweight', 'bodyweight_ratio', 1, 'Squat 1.5x bodyweight', 'barbell-squat', 1.5),
+  ('deadlift-2x-bodyweight', 'bodyweight_ratio', 1, 'Deadlift 2x bodyweight', 'barbell-deadlift', 2.0)
+on conflict (id) do nothing;
+
 -- BEGIN wger-library-expansion (generated)
 -- 200 additional exercises fetched from wger's public API
 -- (scripts/wger/generateExerciseLibrarySeed.ts). Additive only: relies on
--- `on conflict (id) do nothing` so the curated 23 rows above are never
+-- `on conflict (id) do nothing` so the curated 24 rows above are never
 -- touched. Regenerate by re-running the script; this section is fully
 -- overwritten each time, never appended to.
 insert into public.exercises

@@ -7,11 +7,15 @@ import { supabase } from "@/lib/supabase";
 import { isBodyweightExercise, type Exercise } from "@/models/exercise";
 import type { SetLog, WorkoutSession } from "@/models/session";
 import type { WorkoutExercise, WorkoutWithExercises } from "@/models/workout";
+import { createLocalId } from "@/utils/ids";
 
+import { detectNewPersonalRecords } from "./personalRecordDetection";
+import { createPersonalRecordRepository } from "./personalRecordRepository";
 import { createSessionRepository } from "./sessionRepository";
 
 export type ActiveSessionExercise = WorkoutExercise & {
   exerciseName: string;
+  imageUrl: string;
   loggedSetCount: number;
   isBodyweight: boolean;
 };
@@ -44,6 +48,58 @@ export function createSessionService(client: SupabaseClient): SessionService {
   const sessionRepository = createSessionRepository(client);
   const workoutRepository = createWorkoutRepository(client);
   const exerciseLibraryService = createExerciseLibraryService(client);
+  const personalRecordRepository = createPersonalRecordRepository(client);
+
+  // Runs once per completed session (not per set — see plan.md spec 010
+  // Design Decision 1): a discarded session never reaches completeSession,
+  // so its sets can never produce a PR.
+  async function recordPersonalRecords(session: WorkoutSession): Promise<void> {
+    const [workout, setLogs] = await Promise.all([
+      workoutRepository.getWorkoutWithExercises(session.workoutId),
+      sessionRepository.listSetLogs(session.id)
+    ]);
+
+    if (!workout) {
+      return;
+    }
+
+    const exerciseIdByWorkoutExerciseId = new Map(
+      workout.exercises.map((exercise) => [exercise.id, exercise.exerciseId])
+    );
+
+    const sessionSetLogs = setLogs.map((setLog) => ({
+      exerciseId: exerciseIdByWorkoutExerciseId.get(setLog.workoutExerciseId) ?? "",
+      weight: setLog.weight,
+      reps: setLog.reps
+    }));
+
+    const exerciseIds = Array.from(new Set(sessionSetLogs.map((setLog) => setLog.exerciseId).filter(Boolean)));
+
+    if (exerciseIds.length === 0) {
+      return;
+    }
+
+    const priorBestByExercise = await personalRecordRepository.getBestWeightsByExercise(session.userId, exerciseIds);
+    const newRecords = detectNewPersonalRecords(sessionSetLogs, priorBestByExercise);
+
+    if (newRecords.length === 0) {
+      return;
+    }
+
+    const achievedAt = new Date().toISOString();
+
+    await personalRecordRepository.insertPersonalRecords(
+      newRecords.map((record) => ({
+        id: createLocalId("pr"),
+        userId: session.userId,
+        exerciseId: record.exerciseId,
+        weight: record.weight,
+        reps: record.reps,
+        sessionId: session.id,
+        achievedAt
+      }))
+    );
+  }
 
   async function hydrateSessionDetails(session: WorkoutSession): Promise<ActiveSessionDetails> {
     const workout = await workoutRepository.getWorkoutWithExercises(session.workoutId);
@@ -69,6 +125,7 @@ export function createSessionService(client: SupabaseClient): SessionService {
       exercises: workout.exercises.map((workoutExercise) => ({
         ...workoutExercise,
         exerciseName: exercisesById.get(workoutExercise.exerciseId)?.name ?? workoutExercise.exerciseId,
+        imageUrl: exercisesById.get(workoutExercise.exerciseId)?.imageUrl ?? "",
         loggedSetCount: countLoggedSets(setLogs, workoutExercise.id),
         isBodyweight: isBodyweightExercise(exercisesById.get(workoutExercise.exerciseId)?.equipment)
       }))
@@ -158,6 +215,8 @@ export function createSessionService(client: SupabaseClient): SessionService {
         rating: options.rating ?? null,
         endedAt: options.endedAt
       });
+
+      await recordPersonalRecords(session);
 
       return this.getSessionDetails(session.id);
     },

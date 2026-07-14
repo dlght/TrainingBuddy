@@ -28,8 +28,8 @@ jest.mock("expo-router", () => {
   };
 });
 
-jest.mock("@/features/profile/profileService", () => ({
-  profileService: {
+jest.mock("@/features/profile/profileService", () => {
+  const fakeProfileService = {
     getProfile: jest.fn().mockResolvedValue({
       id: "local-user",
       name: "Alex",
@@ -40,8 +40,13 @@ jest.mock("@/features/profile/profileService", () => ({
       goal: "Build consistency",
       createdAt: "2026-07-06T00:00:00.000Z"
     })
-  }
-}));
+  };
+
+  return {
+    profileService: fakeProfileService,
+    createProfileService: () => fakeProfileService
+  };
+});
 
 jest.mock("@/features/exercises/exerciseLibraryService", () => ({
   exerciseLibraryService: {

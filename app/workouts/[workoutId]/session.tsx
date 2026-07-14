@@ -1,5 +1,6 @@
+import { usePreventRemove } from "@react-navigation/native";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -43,7 +44,7 @@ export default function ActiveSessionScreen() {
   const navigation = useNavigation();
   const { workoutId } = useLocalSearchParams<{ workoutId?: string }>();
   const id = firstParam(workoutId);
-  const isIntentionalLeaveRef = useRef(false);
+  const [isLeavingConfirmed, setIsLeavingConfirmed] = useState(false);
   const [sessionDetails, setSessionDetails] = useState<ActiveSessionDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingSet, setIsSavingSet] = useState(false);
@@ -145,32 +146,52 @@ export default function ActiveSessionScreen() {
     };
   }, [id, resetForSession]);
 
-  const sessionDetailsRef = useRef<ActiveSessionDetails | null>(null);
-
-  useEffect(() => {
-    sessionDetailsRef.current = sessionDetails;
-  }, [sessionDetails]);
-
   // Leaving the screen via header back, hardware back, or swipe-back (as
-  // opposed to Finish/Discard, which set isIntentionalLeaveRef first) should
-  // pause the session rather than let it keep counting elapsed/rest time
-  // unattended. `beforeRemove` fires for all three navigation-away paths.
-  // Native-stack doesn't support preventDefault + a later re-dispatch (it
-  // desyncs native/JS navigation state), so the pause write is fired without
-  // blocking the removal that's already underway.
-  useEffect(() => {
-    const unsubscribe = navigation.addListener("beforeRemove", () => {
-      const currentSession = sessionDetailsRef.current?.session;
+  // opposed to Finish/Discard, which set isLeavingConfirmed first) should ask
+  // for confirmation rather than silently disappear mid-workout.
+  // `usePreventRemove` is the native-stack-safe way to intercept this: a raw
+  // `beforeRemove` listener with `preventDefault()` desyncs native/JS
+  // navigation state on native-stack (the removal already happened natively
+  // by the time JS tries to block it). Confirming sets `isLeavingConfirmed`
+  // (which flips `preventRemove` to false) and re-dispatches the same
+  // navigation action that was intercepted, so the original
+  // back/swipe/header-back gesture completes afterward instead of needing a
+  // second tap.
+  usePreventRemove(
+    Boolean(sessionDetails) && sessionDetails?.session.status === "active" && !isLeavingConfirmed,
+    ({ data }) => {
+      const currentSession = sessionDetails?.session;
 
-      if (isIntentionalLeaveRef.current || !currentSession || currentSession.status !== "active") {
+      if (!currentSession) {
         return;
       }
 
-      void sessionService.pauseActiveSession(currentSession.id);
-    });
+      Alert.alert(
+        "Stop this workout?",
+        "Going back will discard this session and everything you've logged so far.",
+        [
+          { text: "Keep going", style: "cancel" },
+          {
+            text: "Discard",
+            style: "destructive",
+            onPress: () => {
+              setIsLeavingConfirmed(true);
 
-    return unsubscribe;
-  }, [navigation]);
+              void sessionService
+                .discardSession(currentSession.id)
+                .catch((discardError: unknown) => {
+                  console.error("Session could not be discarded.", discardError);
+                })
+                .finally(() => {
+                  resetSessionStore();
+                  navigation.dispatch(data.action);
+                });
+            }
+          }
+        ]
+      );
+    }
+  );
 
   // React's documented "adjusting state when a prop changes" pattern: a state
   // update during render (guarded by comparing against the previous render's
@@ -271,7 +292,7 @@ export default function ActiveSessionScreen() {
     setError(null);
 
     try {
-      isIntentionalLeaveRef.current = true;
+      setIsLeavingConfirmed(true);
       await sessionService.completeSession(sessionDetails.session.id, {
         rating: selectedRating,
         endedAt: workoutCompletedAt ?? undefined
@@ -279,7 +300,7 @@ export default function ActiveSessionScreen() {
       resetSessionStore();
       router.replace("/");
     } catch (finishError: unknown) {
-      isIntentionalLeaveRef.current = false;
+      setIsLeavingConfirmed(false);
       console.error("Session could not be finished.", finishError);
       setError(finishError instanceof Error ? finishError.message : "Session could not be finished.");
       setIsFinishing(false);
@@ -299,12 +320,12 @@ export default function ActiveSessionScreen() {
     setError(null);
 
     try {
-      isIntentionalLeaveRef.current = true;
+      setIsLeavingConfirmed(true);
       await sessionService.discardSession(sessionDetails.session.id);
       resetSessionStore();
       router.replace("/");
     } catch (error) {
-      isIntentionalLeaveRef.current = false;
+      setIsLeavingConfirmed(false);
       console.error("Session could not be discarded.", error);
       setError("Session could not be discarded.");
     }

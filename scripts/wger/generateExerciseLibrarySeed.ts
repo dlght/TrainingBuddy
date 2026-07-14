@@ -114,7 +114,7 @@ function buildSeedSection(exercises: Exercise[]): string {
     SECTION_START,
     `-- ${exercises.length} additional exercises fetched from wger's public API`,
     "-- (scripts/wger/generateExerciseLibrarySeed.ts). Additive only: relies on",
-    "-- `on conflict (id) do nothing` so the curated 23 rows above are never",
+    "-- `on conflict (id) do nothing` so the curated 24 rows above are never",
     "-- touched. Regenerate by re-running the script; this section is fully",
     "-- overwritten each time, never appended to.",
     "insert into public.exercises",

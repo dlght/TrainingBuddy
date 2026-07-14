@@ -3,6 +3,8 @@ import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { theme } from "@/components/theme";
 import { createLocalId } from "@/utils/ids";
+import { resolveExerciseImage } from "@/features/exercises/exerciseImageResolver";
+import { TappableExerciseImage } from "@/features/exercises/TappableExerciseImage";
 
 import { ExerciseLabel } from "@/components/ExerciseLabel";
 
@@ -16,6 +18,7 @@ export type WorkoutExerciseEditorValue = {
   key: string;
   exerciseId: string;
   exerciseName: string;
+  imageUrl: string;
   targetRestSeconds: string;
   setPlans: WorkoutExerciseSetPlanValue[];
 };
@@ -80,9 +83,12 @@ export function WorkoutExerciseEditor({
     });
   };
 
+  const image = resolveExerciseImage({ imageUrl: exercise.imageUrl });
+
   return (
     <View style={styles.card}>
       <View style={styles.header}>
+        <TappableExerciseImage image={image} label={exercise.exerciseName} thumbnailStyle={styles.thumbnail} />
         <View style={styles.titleBlock}>
           <Text style={styles.order}>{index + 1}</Text>
           <ExerciseLabel name={exercise.exerciseName} style={styles.name} />
@@ -211,6 +217,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: theme.spacing.sm
+  },
+  thumbnail: {
+    width: 72,
+    minHeight: 64,
+    borderRadius: theme.radius.sm,
+    backgroundColor: "#e7f3ee"
   },
   titleBlock: {
     flex: 1,

@@ -46,6 +46,7 @@ function editorValueForExercise(exercise: Exercise, index: number): WorkoutExerc
     key: `${exercise.id}-${Date.now()}-${index}`,
     exerciseId: exercise.id,
     exerciseName: exercise.name,
+    imageUrl: exercise.imageUrl,
     targetRestSeconds: "60",
     setPlans: [createSetPlanValue()]
   };
@@ -73,6 +74,7 @@ function editorValuesForWorkout(
       key: workoutExercise.id,
       exerciseId: workoutExercise.exerciseId,
       exerciseName: exercise?.name ?? workoutExercise.exerciseId,
+      imageUrl: exercise?.imageUrl ?? "",
       targetRestSeconds: String(workoutExercise.targetRestSeconds),
       setPlans
     };

@@ -7,7 +7,6 @@ import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
 import { ExerciseImageFallback } from "@/features/exercises/ExerciseImageFallback";
 import { exerciseLibraryService } from "@/features/exercises/exerciseLibraryService";
-import { exerciseLocalImages } from "@/features/exercises/exerciseLocalImages";
 import { resolveExerciseImage } from "@/features/exercises/exerciseImageResolver";
 import { formatMuscleGroupName } from "@/features/exercises/exerciseSelectors";
 import type { Exercise } from "@/models/exercise";
@@ -99,13 +98,6 @@ export default function ExerciseDetailScreen() {
           accessibilityIgnoresInvertColors
           resizeMode="cover"
           source={{ uri: image.uri }}
-          style={styles.visualImage}
-        />
-      ) : image.kind === "local" && exerciseLocalImages[image.path] ? (
-        <Image
-          accessibilityIgnoresInvertColors
-          resizeMode="cover"
-          source={exerciseLocalImages[image.path]}
           style={styles.visualImage}
         />
       ) : (

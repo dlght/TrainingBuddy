@@ -18,7 +18,19 @@ function BadgeCard({ badge }: { badge: BadgeProgress }) {
   );
 }
 
-function BadgeSection({ title, badges }: { title: string; badges: BadgeProgress[] }) {
+function BadgeSection({
+  title,
+  badges,
+  footnote
+}: {
+  title: string;
+  badges: BadgeProgress[];
+  footnote?: string;
+}) {
+  if (badges.length === 0) {
+    return null;
+  }
+
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
@@ -27,6 +39,7 @@ function BadgeSection({ title, badges }: { title: string; badges: BadgeProgress[
           <BadgeCard badge={badge} key={badge.id} />
         ))}
       </View>
+      {footnote ? <Text style={styles.sectionFootnote}>{footnote}</Text> : null}
     </View>
   );
 }
@@ -98,6 +111,19 @@ export default function ChallengesScreen() {
 
           <BadgeSection badges={badgesFor(progress, "lifetime_workouts")} title="Lifetime workouts" />
           <BadgeSection badges={badgesFor(progress, "streak")} title="Streaks" />
+          <BadgeSection badges={badgesFor(progress, "monthly_workout_count")} title="Monthly workouts" />
+          <BadgeSection badges={badgesFor(progress, "total_volume_kg")} title="Weight lifted" />
+          <BadgeSection badges={badgesFor(progress, "exercise_session_count")} title="Exercise milestones" />
+          <BadgeSection badges={badgesFor(progress, "pr_count")} title="Personal records" />
+          <BadgeSection
+            badges={badgesFor(progress, "bodyweight_ratio")}
+            footnote={
+              progress.bodyweight === null
+                ? "Add your bodyweight in your profile to unlock these badges."
+                : undefined
+            }
+            title="Strength milestones"
+          />
         </>
       ) : null}
     </ScrollView>
@@ -164,6 +190,11 @@ const styles = StyleSheet.create({
     color: theme.colors.text,
     fontSize: 18,
     fontWeight: "800"
+  },
+  sectionFootnote: {
+    color: theme.colors.muted,
+    fontSize: 13,
+    lineHeight: 18
   },
   badgeGrid: {
     flexDirection: "row",

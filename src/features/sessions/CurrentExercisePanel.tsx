@@ -3,6 +3,11 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { theme } from "@/components/theme";
 import type { SetLog } from "@/models/session";
 
+import { resolveExerciseImage } from "@/features/exercises/exerciseImageResolver";
+import { TappableExerciseImage } from "@/features/exercises/TappableExerciseImage";
+import { formatRepRange } from "@/features/workouts/repRangeFormat";
+
+import { SetProgressDots } from "./SetProgressDots";
 import type { ActiveSessionExercise } from "./sessionService";
 
 type CurrentExercisePanelProps = {
@@ -23,27 +28,35 @@ export function CurrentExercisePanel({
   onNext
 }: CurrentExercisePanelProps) {
   const exerciseSetLogs = setLogs.filter((setLog) => setLog.workoutExerciseId === exercise.id);
+  const image = resolveExerciseImage({ imageUrl: exercise.imageUrl });
 
   return (
     <View style={styles.card}>
-      <Text style={styles.eyebrow}>
-        Exercise {exerciseIndex + 1} of {exerciseCount}
-      </Text>
-      <Text style={styles.title}>{exercise.exerciseName}</Text>
+      <View style={styles.headerRow}>
+        <TappableExerciseImage image={image} label={exercise.exerciseName} thumbnailStyle={styles.thumbnail} />
+        <View style={styles.headerText}>
+          <Text style={styles.eyebrow}>
+            Exercise {exerciseIndex + 1} of {exerciseCount}
+          </Text>
+          <Text style={styles.title}>{exercise.exerciseName}</Text>
+        </View>
+      </View>
       <Text style={styles.meta}>
-        Target {exercise.targetSets} sets - {exercise.targetRepRangeLow}-{exercise.targetRepRangeHigh} reps -{" "}
-        {exercise.targetRestSeconds}s target rest
+        Target {exercise.targetSets} sets - {formatRepRange(exercise.targetRepRangeLow, exercise.targetRepRangeHigh)}{" "}
+        reps - {exercise.targetRestSeconds}s target rest
       </Text>
-      <Text style={styles.meta}>
-        Logged {exerciseSetLogs.length} of {exercise.targetSets} planned sets
-      </Text>
+      <SetProgressDots completed={exerciseSetLogs.length} total={exercise.targetSets} />
 
       {exerciseSetLogs.length > 0 ? (
         <View style={styles.loggedSets}>
           {exerciseSetLogs.map((setLog) => (
-            <Text key={setLog.id} style={styles.loggedSet}>
-              Set {setLog.setNumber}: {setLog.reps} reps{setLog.weight !== null ? `, ${setLog.weight} weight` : ""}
-            </Text>
+            <View key={setLog.id} style={styles.loggedSetRow}>
+              <View style={styles.loggedSetBadge}>
+                <Text style={styles.loggedSetBadgeText}>{setLog.setNumber}</Text>
+              </View>
+              <Text style={styles.loggedSetReps}>{setLog.reps} reps</Text>
+              {setLog.weight !== null ? <Text style={styles.loggedSetWeight}>{setLog.weight}</Text> : null}
+            </View>
           ))}
         </View>
       ) : null}
@@ -79,6 +92,21 @@ const styles = StyleSheet.create({
     gap: theme.spacing.sm,
     padding: theme.spacing.md
   },
+  headerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.md
+  },
+  thumbnail: {
+    width: 72,
+    minHeight: 64,
+    borderRadius: theme.radius.sm,
+    backgroundColor: "#e7f3ee"
+  },
+  headerText: {
+    flex: 1,
+    gap: theme.spacing.xs
+  },
   eyebrow: {
     color: theme.colors.primary,
     fontSize: 13,
@@ -98,10 +126,33 @@ const styles = StyleSheet.create({
   loggedSets: {
     gap: theme.spacing.xs
   },
-  loggedSet: {
+  loggedSetRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: theme.spacing.sm
+  },
+  loggedSetBadge: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.primary
+  },
+  loggedSetBadgeText: {
+    color: theme.colors.primaryText,
+    fontSize: 13,
+    fontWeight: "800"
+  },
+  loggedSetReps: {
     color: theme.colors.text,
     fontSize: 14,
     fontWeight: "700"
+  },
+  loggedSetWeight: {
+    color: theme.colors.muted,
+    fontSize: 14,
+    fontWeight: "600"
   },
   navRow: {
     flexDirection: "row",

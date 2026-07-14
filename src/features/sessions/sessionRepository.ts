@@ -95,7 +95,23 @@ function summarizeCompletedSessions(
   });
 }
 
+const EPOCH_ISO = "1970-01-01T00:00:00.000Z";
+
 export function createSessionRepository(client: SupabaseClient) {
+  async function getExerciseIdsByWorkoutExerciseIds(workoutExerciseIds: string[]): Promise<Map<string, string>> {
+    if (workoutExerciseIds.length === 0) {
+      return new Map();
+    }
+
+    const { data, error } = await client.from("workout_exercises").select("id, exercise_id").in("id", workoutExerciseIds);
+
+    if (error) {
+      throw error;
+    }
+
+    return new Map(((data ?? []) as { id: string; exercise_id: string }[]).map((row) => [row.id, row.exercise_id]));
+  }
+
   async function getSessionById(sessionId: string): Promise<WorkoutSession | null> {
     const { data, error } = await client.from("workout_sessions").select("*").eq("id", sessionId).maybeSingle();
 
@@ -331,6 +347,23 @@ export function createSessionRepository(client: SupabaseClient) {
       }
 
       return ((data ?? []) as { ended_at: string }[]).map((row) => row.ended_at);
+    },
+
+    async listAllCompletedSetLogsWithExercise(
+      userId: string
+    ): Promise<{ sessionId: string; exerciseId: string; reps: number; weight: number | null }[]> {
+      const sessions = await listCompletedSessionRowsSince(userId, EPOCH_ISO);
+      const setLogsBySession = await listSetLogsForSessions(sessions.map((session) => session.id));
+      const setLogs = Array.from(setLogsBySession.values()).flat();
+      const workoutExerciseIds = Array.from(new Set(setLogs.map((setLog) => setLog.workout_exercise_id)));
+      const exerciseIdByWorkoutExerciseId = await getExerciseIdsByWorkoutExerciseIds(workoutExerciseIds);
+
+      return setLogs.map((setLog) => ({
+        sessionId: setLog.session_id,
+        exerciseId: exerciseIdByWorkoutExerciseId.get(setLog.workout_exercise_id) ?? "",
+        reps: setLog.reps,
+        weight: setLog.weight
+      }));
     },
 
     async listCompletedSetLogsSince(

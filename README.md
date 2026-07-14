@@ -5,7 +5,7 @@ TrainingBuddy is an offline-first beginner workout tracker built with Expo, Type
 ## Current Implementation Notes
 
 - Fresh installs seed six muscle groups, 24 beginner exercises, and exactly three protected sample workouts: Full Body A, Full Body B, and Full Body C.
-- Seeded exercises currently use bundled local placeholder asset paths under `assets/seed-exercises/`.
+- Seeded exercises use real photos hosted on wger.de, with a placeholder shown for any exercise missing one.
 - Sample workouts are read-only templates. Copy a template or create a custom workout to edit targets and exercise order.
 - The app supports profile setup, exercise library browsing, custom workout building, active session logging with rest timer controls, resume/discard for interrupted active sessions, and exercise history/progress views.
 - Loading, empty, and error states are implemented with shared components in `src/components/`.
