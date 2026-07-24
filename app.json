@@ -24,7 +24,11 @@
       }
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "favicon": "./assets/icon.png",
+      "themeColor": "#1f7a5f",
+      "backgroundColor": "#f8fafc",
+      "description": "Plan workouts, log sessions, and track your training progress."
     },
     "plugins": [
       "expo-router"

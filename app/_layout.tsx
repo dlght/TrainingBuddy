@@ -1,16 +1,22 @@
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { LoadingState } from "@/components/LoadingState";
 import { theme } from "@/components/theme";
 import { AccountMenu } from "@/features/account/AccountMenu";
+import { registerServiceWorker } from "@/lib/registerServiceWorker";
 import { useAuthStore } from "@/state/authStore";
 
 export default function RootLayout() {
   const session = useAuthStore((state) => state.session);
   const isHydrating = useAuthStore((state) => state.isHydrating);
+
+  useEffect(() => {
+    registerServiceWorker();
+  }, []);
 
   if (isHydrating) {
     return <LoadingState message="Loading your account" />;
